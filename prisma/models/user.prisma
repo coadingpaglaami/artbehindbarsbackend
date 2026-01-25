@@ -1,0 +1,26 @@
+enum Role {
+  USER
+  ADMIN
+}
+
+enum OtpType {
+  signup
+  resetPassword
+}
+
+model User {
+  id            String    @id @default(uuid()) @db.Uuid
+  email         String    @unique
+  firstName     String
+  lastName      String
+  password      String?
+  role          Role      @default(USER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  refreshToken  String?
+  dateOfBirth   DateTime
+  otp           String?
+  otpExpiry     DateTime?
+  oauthProvider String?
+  otpType       OtpType?
+}
