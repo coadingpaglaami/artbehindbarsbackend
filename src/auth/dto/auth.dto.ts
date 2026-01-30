@@ -17,7 +17,9 @@ export type OTPRequestDto = {
   otpType: Pick<User, 'otpType'>;
 };
 
-export type RefreshTokenRequestDto = Pick<User, 'refreshToken'>;
+export type RefreshTokenRequestDto = {
+  refreshToken: string;
+};
 
 export type UserResponseDto = Pick<
   User,

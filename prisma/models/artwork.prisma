@@ -1,0 +1,21 @@
+enum Category {
+  Religious
+  Non_Religious
+}
+
+model Artwork {
+  id               String   @id @default(uuid()) @db.Uuid
+  imageUrl         String
+  title            String?
+  isAnonymous      Boolean  @default(false)
+  category         Category
+  buyItNowPrice    Float
+  startingBidPrice Float?
+  artistId         String?  @db.Uuid
+  artist           Artist?  @relation(fields: [artistId], references: [id], onDelete: SetNull)
+
+  uploadedById String? @db.Uuid
+  uploadedBy   User?   @relation("ArtworkUploadedBy", fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+}

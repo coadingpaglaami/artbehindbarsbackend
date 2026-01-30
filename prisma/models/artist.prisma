@@ -1,0 +1,16 @@
+model Artist {
+  id             String   @id @default(uuid()) @db.Uuid
+  name           String
+  lifeSentence   String
+  facilityName   String
+  inmateId       String
+  state          String
+  minReleaseDate DateTime
+  maxReleaseDate DateTime
+
+  createdById String? @db.Uuid
+  createdBy   User?   @relation("ArtistCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  artworks  Artwork[]
+  createdAt DateTime  @default(now())
+}

@@ -17,10 +17,12 @@ model User {
   role          Role      @default(USER)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
-  refreshToken  String?
   dateOfBirth   DateTime
   otp           String?
   otpExpiry     DateTime?
   oauthProvider String?
   otpType       OtpType?
+
+  createdArtists   Artist[]  @relation("ArtistCreatedBy")
+  uploadedArtworks Artwork[] @relation("ArtworkUploadedBy")
 }
