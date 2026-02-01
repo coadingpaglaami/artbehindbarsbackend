@@ -6,10 +6,11 @@ import { AuthModule } from './auth/auth.module';
 import { MailModule } from './mail/mail.module';
 import { RoleModule } from './role/role.module';
 import { UploadModule } from './upload/upload.module';
+import { GalleryModule } from './gallery/gallery.module';
 
 
 @Module({
-  imports: [PrismaModule, AuthModule, MailModule, RoleModule, UploadModule],
+  imports: [PrismaModule, AuthModule, MailModule, RoleModule, UploadModule, GalleryModule],
   controllers: [AppController],
   providers: [AppService],
 })
