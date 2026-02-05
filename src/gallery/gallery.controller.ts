@@ -12,15 +12,19 @@ import { GalleryService } from './gallery.service';
 import { AuthGuard } from '@nestjs/passport';
 import { Roles } from 'src/role/decorators/role.decorator';
 import type { Request } from 'express';
-import type { ArtistRequestDto, ArtistResponseDto, ArtWorkUploadRequestDto, ArtWorkUploadResponseDto } from './dto/artist.dto';
+import type {
+  ArtistRequestDto,
+  ArtistResponseDto,
+  ArtWorkUploadRequestDto,
+  ArtWorkUploadResponseDto,
+} from './dto/artist.dto';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 
-
-@UseGuards(AuthGuard('jwt'))
 @Controller()
 export class GalleryController {
   constructor(private readonly galleryService: GalleryService) {}
 
+  @UseGuards(AuthGuard('jwt'))
   @Post('artist')
   @Roles(['ADMIN'])
   @UseInterceptors(
@@ -43,10 +47,11 @@ export class GalleryController {
     return this.galleryService.getAllArtists();
   }
 
+  @UseGuards(AuthGuard('jwt'))
   @Post('artworkupload')
   @Roles(['ADMIN'])
   @UseInterceptors(
-    FileFieldsInterceptor([{name: 'artworkImage', maxCount: 1}]),
+    FileFieldsInterceptor([{ name: 'artworkImage', maxCount: 1 }]),
   )
   async uploadArtwork(
     @Req() req: Request,
@@ -57,6 +62,10 @@ export class GalleryController {
     },
   ): Promise<ArtWorkUploadResponseDto> {
     const user = req.user;
-    return this.galleryService.uploadArtwork(artwork, user, files.artworkImage[0]);
+    return this.galleryService.uploadArtwork(
+      artwork,
+      user,
+      files.artworkImage[0],
+    );
   }
 }
