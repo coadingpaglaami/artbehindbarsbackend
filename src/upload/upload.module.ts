@@ -9,3 +9,4 @@ import { CloudinaryProvider } from './cloudinary.provider';
   exports: [UploadService],
 })
 export class UploadModule {}
+
