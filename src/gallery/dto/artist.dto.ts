@@ -1,4 +1,4 @@
-import { Artist } from 'src/database/prisma-client/client';
+import { Artist, Artwork } from 'src/database/prisma-client/client';
 
 export type ArtistRequestDto = Pick<
   Artist,
@@ -15,3 +15,11 @@ export type ArtistResponseDto = ArtistRequestDto &
   Pick<Artist, 'id' | 'createdAt' | 'image'>;
 
 export type ArtistUpdateDto = Partial<ArtistRequestDto>;
+
+export type ArtWorkUploadRequestDto = Pick<
+  Artwork,
+  'artistId' | 'title' | 'isAnonymous' | 'category' | 'buyItNowPrice' |'startingBidPrice'
+>;
+
+export type ArtWorkUploadResponseDto = ArtWorkUploadRequestDto &
+  Pick<Artwork, 'id' | 'createdAt' | 'imageUrl'>;
