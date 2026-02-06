@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import {
   ArtistRequestDto,
   ArtistResponseDto,
@@ -12,6 +16,11 @@ import { UploadService } from 'src/upload/upload.service';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 import { PaginatedResponseDto } from 'src/common/dto/pagination-response.dto';
 import { Category, Prisma } from 'src/database/prisma-client/client';
+import {
+  CreateFanMailDto,
+  FanMailQueryDto,
+  ReplyFanMailDto,
+} from './dto/fanmail.dto';
 
 @Injectable()
 export class GalleryService {
@@ -226,5 +235,102 @@ export class GalleryService {
         totalPages: Math.ceil(total / limit),
       },
     };
+  }
+
+  async sendFanMail(userId: string, artistId: string, dto: CreateFanMailDto) {
+    return this.prisma.fanMail.create({
+      data: {
+        artistId,
+        senderUserId: userId,
+        subject: dto.subject,
+        message: dto.message,
+      },
+    });
+  }
+
+  async getMyFanMails(userId: string, query: PaginationQueryDto) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.fanMail.findMany({
+        where: { senderUserId: userId },
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: { artist: true },
+      }),
+      this.prisma.fanMail.count({ where: { senderUserId: userId } }),
+    ]);
+
+    return { data, meta: { page, limit, total } };
+  }
+
+  async adminGetFanMails(query: FanMailQueryDto) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
+    const skip = (page - 1) * limit;
+
+    const where: any = {};
+    if (query.status) where.status = query.status;
+    if (query.isArchived !== undefined) where.isArchived = query.isArchived;
+
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.fanMail.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          artist: true,
+          sender: true,
+        },
+      }),
+      this.prisma.fanMail.count({ where }),
+    ]);
+
+    return { data, meta: { page, limit, total } };
+  }
+
+  async adminGetFanMail(id: string) {
+    const mail = await this.prisma.fanMail.findUnique({
+      where: { id },
+      include: {
+        sender: true,
+        artist: true,
+        fanMailReplies: {
+          orderBy: { createdAt: 'asc' },
+        },
+      },
+    });
+
+    if (!mail) throw new NotFoundException('Fan mail not found');
+    return mail;
+  }
+
+  async adminReply(adminId: string, fanMailId: string, dto: ReplyFanMailDto) {
+    await this.prisma.fanMailReply.create({
+      data: {
+        fanMailId,
+        adminId,
+        message: dto.message,
+      },
+    });
+
+    return this.prisma.fanMail.update({
+      where: { id: fanMailId },
+      data: {
+        status: 'REPLIED',
+        repliedAt: new Date(),
+      },
+    });
+  }
+
+  async archiveFanMail(id: string) {
+    return this.prisma.fanMail.update({
+      where: { id },
+      data: { isArchived: true, status: 'CLOSED' },
+    });
   }
 }

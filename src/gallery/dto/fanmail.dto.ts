@@ -1,0 +1,26 @@
+import { IsEnum, IsOptional, IsString } from 'class-validator';
+import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { FanMailStatus } from 'src/database/prisma-client/enums';
+
+export class CreateFanMailDto {
+  @IsOptional()
+  @IsString()
+  subject?: string;
+
+  @IsString()
+  message: string;
+}
+
+export class ReplyFanMailDto {
+  @IsString()
+  message: string;
+}
+
+export class FanMailQueryDto extends PaginationQueryDto {
+  @IsOptional()
+  @IsEnum(FanMailStatus)
+  status?: FanMailStatus;
+
+  @IsOptional()
+  isArchived?: boolean;
+}

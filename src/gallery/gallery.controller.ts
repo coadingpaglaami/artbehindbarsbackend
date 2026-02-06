@@ -2,6 +2,8 @@ import {
   Body,
   Controller,
   Get,
+  Param,
+  Patch,
   Post,
   Query,
   Req,
@@ -24,6 +26,13 @@ import { GetArtworksQueryDto } from './dto/artist.dto';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 import { PaginatedResponseDto } from 'src/common/dto/pagination-response.dto';
+import {
+  CreateFanMailDto,
+  FanMailQueryDto,
+  ReplyFanMailDto,
+} from './dto/fanmail.dto';
+
+const ADMIN_FANMAIL_BASE_ROUTE = 'admin/fanmail';
 
 @Controller()
 export class GalleryController {
@@ -82,5 +91,42 @@ export class GalleryController {
   ): Promise<PaginatedResponseDto<ArtworkResponseDto>> {
     console.log('raw query:', query);
     return this.galleryService.getAllArtworks(query);
+  }
+
+  @Post(':artistId/send')
+  send(
+    @Req() req,
+    @Param('artistId') artistId: string,
+    @Body() dto: CreateFanMailDto,
+  ) {
+    return this.galleryService.sendFanMail(req.user.id, artistId, dto);
+  }
+
+  @Get('my')
+  myMails(@Req() req, @Query() query: PaginationQueryDto) {
+    return this.galleryService.getMyFanMails(req.user.id, query);
+  }
+
+  @Get(ADMIN_FANMAIL_BASE_ROUTE)
+  getAll(@Query() query: FanMailQueryDto) {
+    return this.galleryService.adminGetFanMails(query);
+  }
+
+  // 📄 View single fan mail + replies
+  @Get(`${ADMIN_FANMAIL_BASE_ROUTE}/:id`)
+  getOne(@Param('id') id: string) {
+    return this.galleryService.adminGetFanMail(id);
+  }
+
+  // ✉️ Reply as artist
+  @Post(`${ADMIN_FANMAIL_BASE_ROUTE}/:id/reply`)
+  reply(@Req() req, @Param('id') id: string, @Body() dto: ReplyFanMailDto) {
+    return this.galleryService.adminReply(req.user.id, id, dto);
+  }
+
+  // 🗄️ Archive fan mail
+  @Patch(`${ADMIN_FANMAIL_BASE_ROUTE}/:id/archive`)
+  archive(@Param('id') id: string) {
+    return this.galleryService.archiveFanMail(id);
   }
 }
