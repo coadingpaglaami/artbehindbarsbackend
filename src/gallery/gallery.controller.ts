@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Post,
+  Query,
   Req,
   UploadedFiles,
   UseGuards,
@@ -15,10 +16,14 @@ import type { Request } from 'express';
 import type {
   ArtistRequestDto,
   ArtistResponseDto,
+  ArtworkResponseDto,
   ArtWorkUploadRequestDto,
   ArtWorkUploadResponseDto,
 } from './dto/artist.dto';
+import { GetArtworksQueryDto } from './dto/artist.dto';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
+import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { PaginatedResponseDto } from 'src/common/dto/pagination-response.dto';
 
 @Controller()
 export class GalleryController {
@@ -43,8 +48,10 @@ export class GalleryController {
   }
 
   @Get('artist')
-  async getAllArtists(): Promise<ArtistResponseDto[]> {
-    return this.galleryService.getAllArtists();
+  async getAllArtists(
+    @Query() query: PaginationQueryDto,
+  ): Promise<PaginatedResponseDto<ArtistResponseDto>> {
+    return this.galleryService.getAllArtists(query);
   }
 
   @UseGuards(AuthGuard('jwt'))
@@ -67,5 +74,13 @@ export class GalleryController {
       user,
       files.artworkImage[0],
     );
+  }
+
+  @Get('artworks')
+  async getAllArtworks(
+    @Query() query: GetArtworksQueryDto,
+  ): Promise<PaginatedResponseDto<ArtworkResponseDto>> {
+    console.log('raw query:', query);
+    return this.galleryService.getAllArtworks(query);
   }
 }

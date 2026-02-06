@@ -7,10 +7,11 @@ import { MailModule } from './mail/mail.module';
 import { RoleModule } from './role/role.module';
 import { UploadModule } from './upload/upload.module';
 import { GalleryModule } from './gallery/gallery.module';
+import { AuctionModule } from './auction/auction.module';
 
 
 @Module({
-  imports: [PrismaModule, AuthModule, MailModule, RoleModule, UploadModule, GalleryModule],
+  imports: [PrismaModule, AuthModule, MailModule, RoleModule, UploadModule, GalleryModule, AuctionModule],
   controllers: [AppController],
   providers: [AppService],
 })

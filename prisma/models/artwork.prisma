@@ -3,26 +3,18 @@ enum Category {
   Non_Religious
 }
 
-enum AuctionStatus {
-  Upcoming
-  Ongoing
-  Ended
-}
-
 model Artwork {
-  id               String        @id @default(uuid()) @db.Uuid
+  id               String   @id @default(uuid()) @db.Uuid
   imageUrl         String
   title            String?
-  isAnonymous      Boolean       @default(false)
+  isAnonymous      Boolean  @default(false)
   category         Category
-  auctionStatus    AuctionStatus @default(Upcoming)
   buyItNowPrice    Float
-  startingBidPrice Float?
-  artistId         String?       @db.Uuid
-  artist           Artist?       @relation(fields: [artistId], references: [id], onDelete: SetNull)
-
-  uploadedById String? @db.Uuid
-  uploadedBy   User?   @relation("ArtworkUploadedBy", fields: [uploadedById], references: [id], onDelete: SetNull)
-
-  createdAt DateTime @default(now())
+  startingBidPrice Float?   @default(0)
+  artistId         String?  @db.Uuid
+  artist           Artist?  @relation(fields: [artistId], references: [id], onDelete: SetNull)
+  createdAt        DateTime @default(now())
+  uploadedById     String?  @db.Uuid
+  uploadedBy       User?    @relation("ArtworkUploadedBy", fields: [uploadedById], references: [id], onDelete: SetNull)
+  auction          Auction?
 }

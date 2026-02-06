@@ -2,11 +2,16 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import {
   ArtistRequestDto,
   ArtistResponseDto,
+  ArtworkResponseDto,
   ArtWorkUploadRequestDto,
   ArtWorkUploadResponseDto,
+  GetArtworksQueryDto,
 } from './dto/artist.dto';
 import { PrismaService } from 'src/database/prisma.service';
 import { UploadService } from 'src/upload/upload.service';
+import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { PaginatedResponseDto } from 'src/common/dto/pagination-response.dto';
+import { Category, Prisma } from 'src/database/prisma-client/client';
 
 @Injectable()
 export class GalleryService {
@@ -67,22 +72,45 @@ export class GalleryService {
     return newartist as ArtistResponseDto;
   }
 
-  async getAllArtists(): Promise<ArtistResponseDto[]> {
-    const artists = await this.prisma.artist.findMany({
-      select: {
-        id: true,
-        name: true,
-        facilityName: true,
-        lifeSentence: true,
-        inmateId: true,
-        maxReleaseDate: true,
-        minReleaseDate: true,
-        state: true,
-        createdAt: true,
-        image: true,
+  async getAllArtists(
+    query: PaginationQueryDto,
+  ): Promise<PaginatedResponseDto<ArtistResponseDto>> {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
+    const skip = (page - 1) * limit;
+
+    const [artists, total] = await this.prisma.$transaction([
+      this.prisma.artist.findMany({
+        skip,
+        take: limit,
+        orderBy: {
+          createdAt: 'desc',
+        },
+        select: {
+          id: true,
+          name: true,
+          facilityName: true,
+          lifeSentence: true,
+          inmateId: true,
+          maxReleaseDate: true,
+          minReleaseDate: true,
+          state: true,
+          createdAt: true,
+          image: true,
+        },
+      }),
+      this.prisma.artist.count(),
+    ]);
+
+    return {
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
       },
-    });
-    return artists;
+      data: artists,
+    };
   }
 
   async uploadArtwork(
@@ -100,11 +128,10 @@ export class GalleryService {
       throw new BadRequestException('User not found');
     }
     const artworkImage = await this.uploadService.uploadSingleFile(file);
-    const { title, isAnonymous, category, buyItNowPrice, startingBidPrice } =
-      artwork;
-    let { artistId } = artwork;
-    if (isAnonymous) {
-      artistId = null;
+    const { title, category, buyItNowPrice, startingBidPrice } = artwork;
+    let { artistId, isAnonymous } = artwork;
+    if (artistId === undefined) {
+      isAnonymous = true; // default to anonymous if artistId is not provided
     } else {
       if (!artistId) {
         throw new BadRequestException(
@@ -117,9 +144,9 @@ export class GalleryService {
         title,
         isAnonymous,
         category,
-        buyItNowPrice,
+        buyItNowPrice: parseFloat(buyItNowPrice as string),
         startingBidPrice,
-        artistId,
+        ...(isAnonymous ? {} : { artistId }),
         imageUrl: artworkImage,
       },
       select: {
@@ -129,7 +156,7 @@ export class GalleryService {
         category: true,
         buyItNowPrice: true,
         startingBidPrice: true,
-        artistId: true,
+        ...(isAnonymous ? {} : { artistId: true }),
         createdAt: true,
         imageUrl: true,
         ...(isAnonymous === false && { artist: { select: { name: true } } }),
@@ -137,5 +164,67 @@ export class GalleryService {
     });
 
     return newArtwork;
+  }
+
+  async getAllArtworks(
+    query: GetArtworksQueryDto,
+  ): Promise<PaginatedResponseDto<ArtworkResponseDto>> {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
+    const skip = (page - 1) * limit;
+    console.log(query.category);
+
+    // ✅ Build optional filter
+    const where: Prisma.ArtworkWhereInput = {
+      ...(query.category && { category: query.category as Category }),
+    };
+
+    // ✅ Query DB with pagination and count
+    const [artworks, total] = await this.prisma.$transaction([
+      this.prisma.artwork.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          title: true,
+          isAnonymous: true,
+          category: true,
+          buyItNowPrice: true,
+          startingBidPrice: true,
+          createdAt: true,
+          imageUrl: true,
+          artist: { select: { name: true } }, // fetch artist name
+          auction: { select: { id: true } }, // check if artwork is in auction
+        },
+      }),
+      this.prisma.artwork.count({ where }),
+    ]);
+
+    // ✅ Enforce anonymity: artist=null if isAnonymous
+    const data: ArtworkResponseDto[] = artworks.map((artwork) => ({
+      id: artwork.id,
+      title: artwork.title,
+      isAnonymous: artwork.isAnonymous,
+      category: artwork.category,
+      buyItNowPrice: artwork.buyItNowPrice,
+      startingBidPrice: artwork.startingBidPrice,
+      createdAt: artwork.createdAt,
+      imageUrl: artwork.imageUrl,
+      artist: artwork.isAnonymous ? null : artwork.artist,
+      auctionId: artwork.auction?.id || null,
+    }));
+
+    // ✅ Return paginated response
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 }

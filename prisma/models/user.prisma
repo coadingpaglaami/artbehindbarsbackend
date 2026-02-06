@@ -23,6 +23,9 @@ model User {
   oauthProvider String?
   otpType       OtpType?
 
-  createdArtists   Artist[]  @relation("ArtistCreatedBy")
-  uploadedArtworks Artwork[] @relation("ArtworkUploadedBy")
+  createdArtists   Artist[]       @relation("ArtistCreatedBy")
+  uploadedArtworks Artwork[]      @relation("ArtworkUploadedBy")
+  auctionBids      AuctionBid[]
+  fanMails         FanMail[]
+  fanMailReplies   FanMailReply[]
 }
