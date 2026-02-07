@@ -1,3 +1,28 @@
+model User {
+  id               String         @id @default(uuid()) @db.Uuid
+  email            String         @unique
+  firstName        String
+  lastName         String
+  password         String?
+  role             Role           @default(USER)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  dateOfBirth      DateTime
+  otp              String?
+  otpExpiry        DateTime?
+  oauthProvider    String?
+  otpType          OtpType?
+  createdArtists   Artist[]       @relation("ArtistCreatedBy")
+  uploadedArtworks Artwork[]      @relation("ArtworkUploadedBy")
+  auctionBids      AuctionBid[]
+  comments         Comment[]
+  fanMails         FanMail[]
+  fanMailReplies   FanMailReply[]
+  likes            Like[]
+  posts            Post[]
+  reports          Report[]
+}
+
 enum Role {
   USER
   ADMIN
@@ -6,26 +31,4 @@ enum Role {
 enum OtpType {
   signup
   resetPassword
-}
-
-model User {
-  id            String    @id @default(uuid()) @db.Uuid
-  email         String    @unique
-  firstName     String
-  lastName      String
-  password      String?
-  role          Role      @default(USER)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  dateOfBirth   DateTime
-  otp           String?
-  otpExpiry     DateTime?
-  oauthProvider String?
-  otpType       OtpType?
-
-  createdArtists   Artist[]       @relation("ArtistCreatedBy")
-  uploadedArtworks Artwork[]      @relation("ArtworkUploadedBy")
-  auctionBids      AuctionBid[]
-  fanMails         FanMail[]
-  fanMailReplies   FanMailReply[]
 }

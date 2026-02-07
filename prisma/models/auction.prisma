@@ -1,28 +1,28 @@
-enum AuctionStatus {
-  Upcoming
-  Ongoing
-  Ended
-}
-
 model Auction {
   id           String        @id @default(uuid()) @db.Uuid
-  artworkId    String        @unique @db.Uuid // <-- add @db.Uuid
-  artwork      Artwork       @relation(fields: [artworkId], references: [id])
+  artworkId    String        @unique @db.Uuid
   startPrice   Float
   currentPrice Float
   startAt      DateTime
   endAt        DateTime
   status       AuctionStatus @default(Upcoming)
-  bids         AuctionBid[]
   createdAt    DateTime      @default(now())
+  artwork      Artwork       @relation(fields: [artworkId], references: [id])
+  bids         AuctionBid[]
 }
 
 model AuctionBid {
   id        String   @id @default(uuid()) @db.Uuid
-  auctionId String   @db.Uuid // <-- must match Auction.id type
-  auction   Auction  @relation(fields: [auctionId], references: [id], onDelete: Cascade)
-  userId    String   @db.Uuid // <-- must match User.id type
-  user      User     @relation(fields: [userId], references: [id])
+  auctionId String   @db.Uuid
+  userId    String   @db.Uuid
   bidPrice  Float
   createdAt DateTime @default(now())
+  auction   Auction  @relation(fields: [auctionId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+enum AuctionStatus {
+  Upcoming
+  Ongoing
+  Ended
 }

@@ -94,38 +94,52 @@ export class GalleryController {
   }
 
   @Post(':artistId/send')
+  @UseGuards(AuthGuard('jwt'))
   send(
-    @Req() req,
+    @Req() req: any,
     @Param('artistId') artistId: string,
     @Body() dto: CreateFanMailDto,
   ) {
-    return this.galleryService.sendFanMail(req.user.id, artistId, dto);
+    return this.galleryService.sendFanMail(req.user.sub, artistId, dto);
   }
 
-  @Get('my')
-  myMails(@Req() req, @Query() query: PaginationQueryDto) {
-    return this.galleryService.getMyFanMails(req.user.id, query);
+  @Get('fan_mail/my')
+  @UseGuards(AuthGuard('jwt'))
+  myMails(@Req() req: any, @Query() query: PaginationQueryDto) {
+    return this.galleryService.getMyFanMails(req.user.sub, query);
   }
 
   @Get(ADMIN_FANMAIL_BASE_ROUTE)
+  @UseGuards(AuthGuard('jwt'))
+  @Roles(['ADMIN'])
   getAll(@Query() query: FanMailQueryDto) {
     return this.galleryService.adminGetFanMails(query);
   }
 
   // 📄 View single fan mail + replies
   @Get(`${ADMIN_FANMAIL_BASE_ROUTE}/:id`)
+  @UseGuards(AuthGuard('jwt'))
+  @Roles(['ADMIN'])
   getOne(@Param('id') id: string) {
     return this.galleryService.adminGetFanMail(id);
   }
 
   // ✉️ Reply as artist
   @Post(`${ADMIN_FANMAIL_BASE_ROUTE}/:id/reply`)
-  reply(@Req() req, @Param('id') id: string, @Body() dto: ReplyFanMailDto) {
-    return this.galleryService.adminReply(req.user.id, id, dto);
+  @UseGuards(AuthGuard('jwt'))
+  @Roles(['ADMIN'])
+  reply(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body() dto: ReplyFanMailDto,
+  ) {
+    return this.galleryService.adminReply(req.user.sub, id, dto);
   }
 
   // 🗄️ Archive fan mail
   @Patch(`${ADMIN_FANMAIL_BASE_ROUTE}/:id/archive`)
+  @UseGuards(AuthGuard('jwt'))
+  @Roles(['ADMIN'])
   archive(@Param('id') id: string) {
     return this.galleryService.archiveFanMail(id);
   }

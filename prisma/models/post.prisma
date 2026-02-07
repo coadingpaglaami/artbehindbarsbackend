@@ -1,0 +1,84 @@
+model Post {
+  id        String    @id @default(uuid()) @db.Uuid
+  title     String
+  content   String
+  userId    String    @db.Uuid
+  stateId   String    @db.Uuid
+  createdAt DateTime  @default(now())
+  imageUrl  String[]
+  videoUrl  String
+  topicId   String    @db.Uuid
+  comments  Comment[]
+  likes     Like[]
+  state     State     @relation(fields: [stateId], references: [id])
+  topic     Topics    @relation(fields: [topicId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
+  reports   Report[]
+}
+
+model State {
+  id    String @id @default(uuid()) @db.Uuid
+  name  String @unique
+  posts Post[]
+}
+
+model Topics {
+  id    String @id @default(uuid()) @db.Uuid
+  name  String @unique
+  posts Post[]
+}
+
+model Like {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  postId    String   @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamp(6)
+  post      Post     @relation(fields: [postId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, postId])
+}
+
+model Comment {
+  id        String    @id @default(uuid()) @db.Uuid
+  content   String
+  userId    String    @db.Uuid
+  postId    String    @db.Uuid
+  parentId  String?   @db.Uuid
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  replies   Comment[] @relation("CommentReplies")
+  post      Post      @relation(fields: [postId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
+}
+
+model Report {
+  id        String       @id @default(uuid()) @db.Uuid
+  reason    ReportReason
+  message   String?
+  userId    String       @db.Uuid
+  postId    String       @db.Uuid
+  status    ReportStatus @default(PENDING)
+  createdAt DateTime     @default(now())
+  post      Post         @relation(fields: [postId], references: [id])
+  user      User         @relation(fields: [userId], references: [id])
+
+  @@unique([userId, postId])
+}
+
+enum ReportReason {
+  SPAM
+  ABUSE
+  HARASSMENT
+  HATE_SPEECH
+  FALSE_INFORMATION
+  OTHER
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWED
+  RESOLVED
+  REJECTED
+}

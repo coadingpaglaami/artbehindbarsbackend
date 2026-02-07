@@ -8,10 +8,11 @@ import { RoleModule } from './role/role.module';
 import { UploadModule } from './upload/upload.module';
 import { GalleryModule } from './gallery/gallery.module';
 import { AuctionModule } from './auction/auction.module';
+import { PostModule } from './post/post.module';
 
 
 @Module({
-  imports: [PrismaModule, AuthModule, MailModule, RoleModule, UploadModule, GalleryModule, AuctionModule],
+  imports: [PrismaModule, AuthModule, MailModule, RoleModule, UploadModule, GalleryModule, AuctionModule, PostModule],
   controllers: [AppController],
   providers: [AppService],
 })

@@ -1,8 +1,3 @@
-enum Category {
-  Religious
-  Non_Religious
-}
-
 model Artwork {
   id               String   @id @default(uuid()) @db.Uuid
   imageUrl         String
@@ -12,9 +7,14 @@ model Artwork {
   buyItNowPrice    Float
   startingBidPrice Float?   @default(0)
   artistId         String?  @db.Uuid
-  artist           Artist?  @relation(fields: [artistId], references: [id], onDelete: SetNull)
-  createdAt        DateTime @default(now())
   uploadedById     String?  @db.Uuid
-  uploadedBy       User?    @relation("ArtworkUploadedBy", fields: [uploadedById], references: [id], onDelete: SetNull)
+  createdAt        DateTime @default(now())
+  artist           Artist?  @relation(fields: [artistId], references: [id])
+  uploadedBy       User?    @relation("ArtworkUploadedBy", fields: [uploadedById], references: [id])
   auction          Auction?
+}
+
+enum Category {
+  Religious
+  Non_Religious
 }

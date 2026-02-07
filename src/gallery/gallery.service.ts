@@ -52,7 +52,7 @@ export class GalleryService {
       name,
       state,
     } = artist;
-    const image = await this.uploadService.uploadSingleFile(file);
+    const image = await this.uploadService.uploadSingleImage(file);
     const newartist = await this.prisma.artist.create({
       data: {
         name,
@@ -136,7 +136,7 @@ export class GalleryService {
     if (!admin) {
       throw new BadRequestException('User not found');
     }
-    const artworkImage = await this.uploadService.uploadSingleFile(file);
+    const artworkImage = await this.uploadService.uploadSingleImage(file);
     const { title, category, buyItNowPrice, startingBidPrice } = artwork;
     let { artistId, isAnonymous } = artwork;
     if (artistId === undefined) {
@@ -245,6 +245,19 @@ export class GalleryService {
         subject: dto.subject,
         message: dto.message,
       },
+      select: {
+        id: true,
+        subject: true,
+        message: true,
+        status: true,
+        createdAt: true,
+        artist: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
     });
   }
 
@@ -259,7 +272,18 @@ export class GalleryService {
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
-        include: { artist: true },
+        select: {
+          id: true,
+          subject: true,
+          message: true,
+          status: true,
+          artist: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
       }),
       this.prisma.fanMail.count({ where: { senderUserId: userId } }),
     ]);
@@ -282,9 +306,26 @@ export class GalleryService {
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
-        include: {
-          artist: true,
-          sender: true,
+        select: {
+          id: true,
+          subject: true,
+          message: true,
+          status: true,
+          isArchived: true,
+          createdAt: true,
+          sender: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+          artist: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
         },
       }),
       this.prisma.fanMail.count({ where }),
@@ -296,9 +337,26 @@ export class GalleryService {
   async adminGetFanMail(id: string) {
     const mail = await this.prisma.fanMail.findUnique({
       where: { id },
-      include: {
-        sender: true,
-        artist: true,
+      select: {
+        id: true,
+        subject: true,
+        message: true,
+        status: true,
+        isArchived: true,
+        createdAt: true,
+        sender: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+        artist: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
         fanMailReplies: {
           orderBy: { createdAt: 'asc' },
         },
@@ -323,6 +381,13 @@ export class GalleryService {
       data: {
         status: 'REPLIED',
         repliedAt: new Date(),
+      },
+      select: {
+        id: true,
+        subject: true,
+        message: true,
+        status: true,
+        isArchived: true,
       },
     });
   }

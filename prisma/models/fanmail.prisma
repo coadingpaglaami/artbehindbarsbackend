@@ -1,27 +1,16 @@
-enum FanMailStatus {
-  PENDING // user sent, no reply yet
-  REPLIED // admin replied as artist
-  CLOSED // optional, if you want final state
-}
-
 model FanMail {
-  id String @id @default(uuid()) @db.Uuid
-
-  artistId     String @db.Uuid
-  senderUserId String @db.Uuid // ✅ FIXED
-
-  subject String?
-  message String
-
-  status     FanMailStatus @default(PENDING)
-  isArchived Boolean       @default(false)
-
-  repliedAt DateTime?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-
-  sender         User           @relation(fields: [senderUserId], references: [id])
+  id             String         @id @default(uuid()) @db.Uuid
+  artistId       String         @db.Uuid
+  senderUserId   String         @db.Uuid
+  subject        String?
+  message        String
+  status         FanMailStatus  @default(PENDING)
+  isArchived     Boolean        @default(false)
+  repliedAt      DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
   artist         Artist         @relation(fields: [artistId], references: [id])
+  sender         User           @relation(fields: [senderUserId], references: [id])
   fanMailReplies FanMailReply[]
 
   @@index([artistId])
@@ -29,14 +18,17 @@ model FanMail {
 }
 
 model FanMailReply {
-  id String @id @default(uuid()) @db.Uuid
-
-  fanMailId String @db.Uuid
-  adminId   String @db.Uuid // must match User.id
-
+  id        String   @id @default(uuid()) @db.Uuid
+  fanMailId String   @db.Uuid
+  adminId   String   @db.Uuid
   message   String
   createdAt DateTime @default(now())
+  admin     User     @relation(fields: [adminId], references: [id])
+  fanMail   FanMail  @relation(fields: [fanMailId], references: [id])
+}
 
-  fanMail FanMail @relation(fields: [fanMailId], references: [id])
-  admin   User    @relation(fields: [adminId], references: [id])
+enum FanMailStatus {
+  PENDING
+  REPLIED
+  CLOSED
 }
