@@ -9,10 +9,12 @@ import { UploadModule } from './upload/upload.module';
 import { GalleryModule } from './gallery/gallery.module';
 import { AuctionModule } from './auction/auction.module';
 import { PostModule } from './post/post.module';
+import { SocketModule } from './socket/socket.module';
+import { ConnectionModule } from './connection/connection.module';
 
 
 @Module({
-  imports: [PrismaModule, AuthModule, MailModule, RoleModule, UploadModule, GalleryModule, AuctionModule, PostModule],
+  imports: [PrismaModule, AuthModule, MailModule, RoleModule, UploadModule, GalleryModule, AuctionModule, PostModule, SocketModule, ConnectionModule],
   controllers: [AppController],
   providers: [AppService],
 })

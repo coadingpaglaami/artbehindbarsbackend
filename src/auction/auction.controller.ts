@@ -22,6 +22,7 @@ import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 export class AuctionController {
   constructor(private readonly auctionService: AuctionService) {}
   @Post('create')
+  @UseGuards(AuthGuard('jwt'))
   @Roles(['ADMIN'])
   async createAuction(@Body() dto: CreateAuctionDto) {
     return this.auctionService.createAuction(dto);
