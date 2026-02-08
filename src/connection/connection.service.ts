@@ -87,6 +87,9 @@ export class ConnectionService {
     const connection = await this.prisma.connection.findUnique({
       where: { id: connectionId },
     });
+    if (connection?.status === ConnectionStatus.ACCEPTED) {
+      throw new BadRequestException('Cannot reject an accepted connection');
+    }
 
     if (!connection) throw new NotFoundException();
 

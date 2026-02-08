@@ -1,0 +1,45 @@
+model Chat {
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  participants ChatParticipant[]
+  messages     Message[]
+}
+
+model ChatParticipant {
+  id     String @id @default(uuid()) @db.Uuid
+  chatId String @db.Uuid
+  userId String @db.Uuid
+
+  chat Chat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([chatId, userId])
+}
+
+model Message {
+  id        String   @id @default(uuid()) @db.Uuid
+  chatId    String   @db.Uuid
+  senderId  String   @db.Uuid
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  chat     Chat            @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  sender   User            @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  statuses MessageStatus[]
+}
+
+model MessageStatus {
+  id        String    @id @default(uuid()) @db.Uuid
+  messageId String    @db.Uuid
+  userId    String    @db.Uuid
+  seen      Boolean   @default(false)
+  seenAt    DateTime?
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId])
+}

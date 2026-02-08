@@ -64,4 +64,26 @@ export class MailService {
       html,
     });
   }
+  async sendAdminReplyEmail(
+    to: string,
+    name: string,
+    reply: string,
+  ) {
+    await this.transporter.sendMail({
+      from: `"Support Team" <${process.env.MAIL_USER}>`,
+      to,
+      subject: 'Reply to Your Contact Request',
+      html: `
+        <div>
+          <h3>Hello ${name},</h3>
+          <p>We have replied to your message:</p>
+          <div style="padding:10px;background:#f4f4f4;border-radius:6px;">
+            ${reply}
+          </div>
+          <br/>
+          <p>Best Regards,<br/>Support Team</p>
+        </div>
+      `,
+    });
+  }
 }

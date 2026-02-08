@@ -31,7 +31,9 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       if (!token) return client.disconnect();
 
-      const payload = this.jwtService.verify(token);
+      const payload = this.jwtService.verify(token, {
+        secret: process.env.JWT_SECRET,
+      });
 
       await this.socketService.registerUser(payload.sub, client.id);
     } catch {

@@ -11,10 +11,12 @@ import { AuctionModule } from './auction/auction.module';
 import { PostModule } from './post/post.module';
 import { SocketModule } from './socket/socket.module';
 import { ConnectionModule } from './connection/connection.module';
+import { ContactUsModule } from './contact_us/contact_us.module';
+import { ChatModule } from './chat/chat.module';
 
 
 @Module({
-  imports: [PrismaModule, AuthModule, MailModule, RoleModule, UploadModule, GalleryModule, AuctionModule, PostModule, SocketModule, ConnectionModule],
+  imports: [PrismaModule, AuthModule, MailModule, RoleModule, UploadModule, GalleryModule, AuctionModule, PostModule, SocketModule, ConnectionModule, ContactUsModule, ChatModule],
   controllers: [AppController],
   providers: [AppService],
 })

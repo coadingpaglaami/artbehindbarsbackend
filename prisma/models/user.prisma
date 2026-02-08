@@ -1,28 +1,31 @@
 model User {
-  id                  String         @id @default(uuid()) @db.Uuid
-  email               String         @unique
+  id                  String            @id @default(uuid()) @db.Uuid
+  email               String            @unique
   firstName           String
   lastName            String
   password            String?
-  role                Role           @default(USER)
-  createdAt           DateTime       @default(now())
-  updatedAt           DateTime       @updatedAt
+  role                Role              @default(USER)
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
   dateOfBirth         DateTime
   otp                 String?
   otpExpiry           DateTime?
   oauthProvider       String?
   otpType             OtpType?
-  createdArtists      Artist[]       @relation("ArtistCreatedBy")
-  uploadedArtworks    Artwork[]      @relation("ArtworkUploadedBy")
+  createdArtists      Artist[]          @relation("ArtistCreatedBy")
+  uploadedArtworks    Artwork[]         @relation("ArtworkUploadedBy")
   auctionBids         AuctionBid[]
   comments            Comment[]
+  receivedConnections Connection[]      @relation("Receiver")
+  sentConnections     Connection[]      @relation("Requester")
   fanMails            FanMail[]
   fanMailReplies      FanMailReply[]
   likes               Like[]
   posts               Post[]
   reports             Report[]
-  sentConnections     Connection[]   @relation("Requester")
-  receivedConnections Connection[]   @relation("Receiver")
+  chatParticipants    ChatParticipant[]
+  messages            Message[]
+  messageStatuses     MessageStatus[]
 }
 
 enum Role {
