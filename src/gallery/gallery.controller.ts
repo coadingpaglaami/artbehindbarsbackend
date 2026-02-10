@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -53,6 +54,7 @@ export class GalleryController {
     },
   ): Promise<ArtistResponseDto> {
     const user = req.user;
+    console.log(artist);
     return this.galleryService.createArtist(artist, user, files.artistImage[0]);
   }
 
@@ -61,6 +63,34 @@ export class GalleryController {
     @Query() query: PaginationQueryDto,
   ): Promise<PaginatedResponseDto<ArtistResponseDto>> {
     return this.galleryService.getAllArtists(query);
+  }
+
+  @Patch('artist/:id')
+  @UseGuards(AuthGuard('jwt'))
+  @Roles(['ADMIN'])
+  @UseInterceptors(
+    FileFieldsInterceptor([{ name: 'artistImage', maxCount: 1 }]),
+  )
+  async updateArtist(
+    @Param('id') id: string,
+    @Body() artist: Partial<ArtistRequestDto>,
+    @UploadedFiles()
+    files: {
+      artistImage?: Express.Multer.File[];
+    },
+  ): Promise<ArtistResponseDto> {
+    // Update functionality will be implemented later
+    return this.galleryService.updateArtist(
+      id,
+      artist,
+      files.artistImage ? files.artistImage[0] : undefined,
+    );
+  }
+  @Delete('artist/:id')
+  @UseGuards(AuthGuard('jwt'))
+  @Roles(['ADMIN'])
+  async deleteArtist(@Param('id') id: string): Promise<{ message: string }> {
+    return this.galleryService.deleteArtist(id);
   }
 
   @UseGuards(AuthGuard('jwt'))
@@ -91,6 +121,34 @@ export class GalleryController {
   ): Promise<PaginatedResponseDto<ArtworkResponseDto>> {
     console.log('raw query:', query);
     return this.galleryService.getAllArtworks(query);
+  }
+
+  @Patch('artwork/:id')
+  @UseGuards(AuthGuard('jwt'))
+  @Roles(['ADMIN'])
+  @UseInterceptors(
+    FileFieldsInterceptor([{ name: 'artworkImage', maxCount: 1 }]),
+  )
+  async updateArtwork(
+    @Param('id') id: string,
+    @Body() artwork: Partial<ArtWorkUploadRequestDto>,
+    @UploadedFiles()
+    files: {
+      artworkImage?: Express.Multer.File[];
+    },
+  ): Promise<ArtworkResponseDto> {
+    return this.galleryService.updateArtwork(
+      id,
+      artwork,
+      files.artworkImage ? files.artworkImage[0] : undefined,
+    );
+  }
+
+  @Delete('artwork/:id')
+  @UseGuards(AuthGuard('jwt'))
+  @Roles(['ADMIN'])
+  async deleteArtwork(@Param('id') id: string): Promise<{ message: string }> {
+    return this.galleryService.deleteArtwork(id);
   }
 
   @Post(':artistId/send')

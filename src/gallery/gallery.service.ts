@@ -122,6 +122,70 @@ export class GalleryService {
     };
   }
 
+  async updateArtist(
+    id: string,
+    artist: Partial<ArtistRequestDto>,
+    file?: Express.Multer.File,
+  ): Promise<ArtistResponseDto> {
+    const existingArtist = await this.prisma.artist.findUnique({
+      where: { id },
+    });
+    if (!existingArtist) {
+      throw new NotFoundException('Artist not found');
+    }
+    let image: string | undefined;
+    if (file) {
+      image = await this.uploadService.uploadSingleImage(file);
+    }
+    const updatedArtist = await this.prisma.artist.update({
+      where: { id },
+      data: {
+        name: artist.name ?? existingArtist.name,
+        facilityName: artist.facilityName ?? existingArtist.facilityName,
+        lifeSentence: artist.lifeSentence ?? existingArtist.lifeSentence,
+        inmateId: artist.inmateId ?? existingArtist.inmateId,
+        maxReleaseDate: artist.maxReleaseDate
+          ? new Date(artist.maxReleaseDate)
+          : existingArtist.maxReleaseDate,
+        minReleaseDate: artist.minReleaseDate
+          ? new Date(artist.minReleaseDate)
+          : existingArtist.minReleaseDate,
+        state: artist.state ?? existingArtist.state,
+        image: image ?? existingArtist.image,
+      },
+      select: {
+        id: true,
+        name: true,
+        facilityName: true,
+        lifeSentence: true,
+        inmateId: true,
+        maxReleaseDate: true,
+        minReleaseDate: true,
+        state: true,
+        image: true,
+      },
+    });
+    return updatedArtist as ArtistResponseDto;
+  }
+
+  async deleteArtist(id: string): Promise<{ message: string }> {
+    const existingArtist = await this.prisma.artist.findUnique({
+      where: { id },
+    });
+    await this.prisma.artwork.updateMany({
+      where: { artistId: id },
+      data: { artistId: null, isAnonymous: true },
+    });
+
+    if (!existingArtist) {
+      throw new NotFoundException('Artist not found');
+    }
+    await this.prisma.artist.delete({
+      where: { id },
+    });
+    return { message: 'Artist deleted successfully' };
+  }
+
   async uploadArtwork(
     artwork: ArtWorkUploadRequestDto,
     user: any,
@@ -148,13 +212,19 @@ export class GalleryService {
         );
       }
     }
+
+    if (typeof isAnonymous === 'string' && isAnonymous === 'true') {
+      isAnonymous = true;
+    } else if (typeof isAnonymous === 'string' && isAnonymous === 'false') {
+      isAnonymous = false;
+    }
     const newArtwork = await this.prisma.artwork.create({
       data: {
         title,
-        isAnonymous,
+        isAnonymous, // Convert to boolean
         category,
-        buyItNowPrice: parseFloat(buyItNowPrice as string),
-        startingBidPrice,
+        buyItNowPrice: parseFloat(buyItNowPrice as unknown as string),
+        startingBidPrice: parseFloat(startingBidPrice as unknown as string),
         ...(isAnonymous ? {} : { artistId }),
         imageUrl: artworkImage,
       },
@@ -235,6 +305,90 @@ export class GalleryService {
         totalPages: Math.ceil(total / limit),
       },
     };
+  }
+
+  async updateArtwork(
+    id: string,
+    artwork: Partial<ArtWorkUploadRequestDto>,
+    file?: Express.Multer.File,
+  ): Promise<ArtworkResponseDto> {
+    const existingArtwork = await this.prisma.artwork.findUnique({
+      where: { id },
+    });
+    if (!existingArtwork) {
+      throw new NotFoundException('Artwork not found');
+    }
+    let imageUrl: string | undefined;
+    if (file) {
+      imageUrl = await this.uploadService.uploadSingleImage(file);
+    }
+    console.log(artwork.isAnonymous);
+    if (
+      typeof artwork.isAnonymous === 'string' &&
+      artwork.isAnonymous === 'true'
+    ) {
+      artwork.isAnonymous = true;
+    } else if (
+      typeof artwork.isAnonymous === 'string' &&
+      artwork.isAnonymous === 'false'
+    ) {
+      artwork.isAnonymous = false;
+    }
+
+    if (typeof artwork.buyItNowPrice === 'string') {
+      artwork.buyItNowPrice = parseFloat(artwork.buyItNowPrice);
+    }
+    if (typeof artwork.startingBidPrice === 'string') {
+      artwork.startingBidPrice = parseFloat(artwork.startingBidPrice);
+    }
+    if (artwork.isAnonymous === true) {
+      artwork.artistId = null;
+    }
+    console.log(artwork.isAnonymous);
+    const updatedArtwork = await this.prisma.artwork.update({
+      where: { id },
+      data: {
+        title: artwork.title ?? existingArtwork.title,
+        category: artwork.category ?? existingArtwork.category,
+        buyItNowPrice: artwork.buyItNowPrice ?? existingArtwork.buyItNowPrice,
+        startingBidPrice:
+          artwork.startingBidPrice ?? existingArtwork.startingBidPrice,
+        ...(imageUrl ? { imageUrl } : {}),
+        isAnonymous:
+          artwork.isAnonymous !== undefined
+            ? artwork.isAnonymous
+              ? true
+              : false
+            : existingArtwork.isAnonymous,
+      },
+      select: {
+        id: true,
+        title: true,
+        isAnonymous: true,
+        category: true,
+        buyItNowPrice: true,
+        startingBidPrice: true,
+        createdAt: true,
+        imageUrl: true,
+        ...(artwork.isAnonymous
+          ? {}
+          : { artist: { select: { name: true } } }),
+      },
+    });
+    return updatedArtwork as ArtworkResponseDto;
+  }
+
+  async deleteArtwork(id: string): Promise<{ message: string }> {
+    const existingArtwork = await this.prisma.artwork.findUnique({
+      where: { id },
+    });
+    if (!existingArtwork) {
+      throw new NotFoundException('Artwork not found');
+    }
+    await this.prisma.artwork.delete({
+      where: { id },
+    });
+    return { message: 'Artwork deleted successfully' };
   }
 
   async sendFanMail(userId: string, artistId: string, dto: CreateFanMailDto) {
