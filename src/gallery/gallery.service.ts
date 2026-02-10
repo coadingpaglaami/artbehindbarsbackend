@@ -122,6 +122,27 @@ export class GalleryService {
     };
   }
 
+  async getArtistById(id: string): Promise<ArtistResponseDto> {
+    const artist = await this.prisma.artist.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        name: true,
+        facilityName: true,
+        lifeSentence: true,
+        inmateId: true,
+        maxReleaseDate: true,
+        minReleaseDate: true,
+        state: true,
+        image: true,
+      },
+    });
+    if (!artist) {
+      throw new NotFoundException('Artist not found');
+    }
+    return artist as ArtistResponseDto;
+  }
+
   async updateArtist(
     id: string,
     artist: Partial<ArtistRequestDto>,
@@ -203,8 +224,14 @@ export class GalleryService {
     const artworkImage = await this.uploadService.uploadSingleImage(file);
     const { title, category, buyItNowPrice, startingBidPrice } = artwork;
     let { artistId, isAnonymous } = artwork;
-    if (artistId === undefined) {
-      isAnonymous = true; // default to anonymous if artistId is not provided
+
+    if (typeof isAnonymous === 'string' && isAnonymous === 'true') {
+      isAnonymous = true;
+    } else if (typeof isAnonymous === 'string' && isAnonymous === 'false') {
+      isAnonymous = false;
+    }
+    if (isAnonymous === true) {
+      artistId = null;
     } else {
       if (!artistId) {
         throw new BadRequestException(
@@ -212,12 +239,7 @@ export class GalleryService {
         );
       }
     }
-
-    if (typeof isAnonymous === 'string' && isAnonymous === 'true') {
-      isAnonymous = true;
-    } else if (typeof isAnonymous === 'string' && isAnonymous === 'false') {
-      isAnonymous = false;
-    }
+    console.log(artistId);
     const newArtwork = await this.prisma.artwork.create({
       data: {
         title,
@@ -307,6 +329,26 @@ export class GalleryService {
     };
   }
 
+  async getArtworkById(id: string): Promise<ArtworkResponseDto> {
+    const artwork = await this.prisma.artwork.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        title: true,
+        isAnonymous: true,
+        category: true,
+        buyItNowPrice: true,
+        startingBidPrice: true,
+        imageUrl: true,
+        artist: { select: { name: true, id: true } },
+      },
+    });
+    if (!artwork) {
+      throw new NotFoundException('Artwork not found');
+    }
+    return artwork as ArtworkResponseDto;
+  }
+
   async updateArtwork(
     id: string,
     artwork: Partial<ArtWorkUploadRequestDto>,
@@ -360,7 +402,12 @@ export class GalleryService {
               ? true
               : false
             : existingArtwork.isAnonymous,
+        artistId:
+          artwork.artistId !== undefined
+            ? artwork.artistId
+            : existingArtwork.artistId,
       },
+
       select: {
         id: true,
         title: true,
@@ -370,9 +417,7 @@ export class GalleryService {
         startingBidPrice: true,
         createdAt: true,
         imageUrl: true,
-        ...(artwork.isAnonymous
-          ? {}
-          : { artist: { select: { name: true } } }),
+        ...(artwork.isAnonymous ? {} : { artist: { select: { name: true } } }),
       },
     });
     return updatedArtwork as ArtworkResponseDto;

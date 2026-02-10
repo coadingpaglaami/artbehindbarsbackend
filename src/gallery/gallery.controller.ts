@@ -65,6 +65,11 @@ export class GalleryController {
     return this.galleryService.getAllArtists(query);
   }
 
+  @Get('artist/:id')
+  async getArtistById(@Param('id') id: string): Promise<ArtistResponseDto> {
+    return this.galleryService.getArtistById(id);
+  }
+
   @Patch('artist/:id')
   @UseGuards(AuthGuard('jwt'))
   @Roles(['ADMIN'])
@@ -121,6 +126,11 @@ export class GalleryController {
   ): Promise<PaginatedResponseDto<ArtworkResponseDto>> {
     console.log('raw query:', query);
     return this.galleryService.getAllArtworks(query);
+  }
+
+  @Get('artwork/:id')
+  async getArtworkById(@Param('id') id: string): Promise<ArtworkResponseDto> {
+    return this.galleryService.getArtworkById(id);
   }
 
   @Patch('artwork/:id')
