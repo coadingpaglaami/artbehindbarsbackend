@@ -55,4 +55,10 @@ export class GetArtworksQueryDto extends PaginationQueryDto {
   @IsEnum(Category)
   @Type(() => String)  // 🔥 important: transforms query param to string
   category?: Category;
+  @IsOptional()
+  searchTerm?: string;
+}
+export class GetArtistsQueryDto extends PaginationQueryDto {
+  @IsOptional()
+  searchTerm?: string;
 }

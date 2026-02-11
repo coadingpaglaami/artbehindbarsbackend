@@ -9,6 +9,7 @@ import {
   ArtworkResponseDto,
   ArtWorkUploadRequestDto,
   ArtWorkUploadResponseDto,
+  GetArtistsQueryDto,
   GetArtworksQueryDto,
 } from './dto/artist.dto';
 import { PrismaService } from 'src/database/prisma.service';
@@ -82,11 +83,14 @@ export class GalleryService {
   }
 
   async getAllArtists(
-    query: PaginationQueryDto,
+    query: GetArtistsQueryDto,
   ): Promise<PaginatedResponseDto<ArtistResponseDto>> {
     const page = query.page ?? 1;
     const limit = query.limit ?? 10;
     const skip = (page - 1) * limit;
+    const searchTerm = query.searchTerm ? query.searchTerm : '';
+
+    console.log(typeof searchTerm, searchTerm);
 
     const [artists, total] = await this.prisma.$transaction([
       this.prisma.artist.findMany({
@@ -94,6 +98,12 @@ export class GalleryService {
         take: limit,
         orderBy: {
           createdAt: 'desc',
+        },
+        where: {
+          OR: [
+            { name: { contains: searchTerm, mode: 'insensitive' } },
+            { facilityName: { contains: searchTerm, mode: 'insensitive' } },
+          ],
         },
         select: {
           id: true,
@@ -141,6 +151,40 @@ export class GalleryService {
       throw new NotFoundException('Artist not found');
     }
     return artist as ArtistResponseDto;
+  }
+
+  async getArtistArtwork(
+    id: string,
+    query: PaginationQueryDto,
+  ): Promise<PaginatedResponseDto<ArtworkResponseDto>> {
+    const artist = await this.prisma.artist.findUnique({
+      where: { id },
+    });
+    if (!artist) {
+      throw new NotFoundException('Artist not found');
+    }
+    const artworks = await this.prisma.artwork.findMany({
+      where: { artistId: artist.id },
+      select: {
+        id: true,
+        title: true,
+        category: true,
+        buyItNowPrice: true,
+        startingBidPrice: true,
+        isAnonymous: true,
+        createdAt: true,
+        imageUrl: true,
+      },
+    });
+    return {
+      meta: {
+        total: artworks.length,
+        page: 1,
+        limit: artworks.length,
+        totalPages: 1,
+      },
+      data: artworks,
+    } as PaginatedResponseDto<ArtworkResponseDto>;
   }
 
   async updateArtist(
@@ -274,10 +318,17 @@ export class GalleryService {
     const limit = query.limit ?? 10;
     const skip = (page - 1) * limit;
     console.log(query.category);
+    const searchTerm = query.searchTerm ? query.searchTerm : '';
 
     // ✅ Build optional filter
     const where: Prisma.ArtworkWhereInput = {
       ...(query.category && { category: query.category as Category }),
+      ...(searchTerm && {
+        OR: [
+          { title: { contains: searchTerm, mode: 'insensitive' } },
+          { artist: { name: { contains: searchTerm, mode: 'insensitive' } } },
+        ],
+      }),
     };
 
     // ✅ Query DB with pagination and count

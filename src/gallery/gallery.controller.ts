@@ -22,6 +22,7 @@ import type {
   ArtworkResponseDto,
   ArtWorkUploadRequestDto,
   ArtWorkUploadResponseDto,
+  GetArtistsQueryDto,
 } from './dto/artist.dto';
 import { GetArtworksQueryDto } from './dto/artist.dto';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
@@ -60,9 +61,17 @@ export class GalleryController {
 
   @Get('artist')
   async getAllArtists(
-    @Query() query: PaginationQueryDto,
+    @Query() query: GetArtistsQueryDto,
   ): Promise<PaginatedResponseDto<ArtistResponseDto>> {
     return this.galleryService.getAllArtists(query);
+  }
+
+  @Get('artist/:id/artworks')
+  async getArtistArtwork(
+    @Param('id') id: string,
+    @Query() query: PaginationQueryDto,
+  ): Promise<PaginatedResponseDto<ArtworkResponseDto>> {
+    return this.galleryService.getArtistArtwork(id, query);
   }
 
   @Get('artist/:id')
