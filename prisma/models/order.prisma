@@ -1,0 +1,32 @@
+model Order {
+  id        String @id @default(uuid()) @db.Uuid
+  artworkId String @unique @db.Uuid
+  buyerId   String @db.Uuid
+
+  // Square Payment Details
+  squarePaymentId String      @unique
+  totalAmount     Float
+  status          OrderStatus @default(COMPLETED)
+
+  // Shipping Information (Snapshot at time of purchase)
+  shippingFullName String
+  shippingAddress  String
+  shippingCity     String
+  shippingState    String
+  shippingZip      String
+  shippingPhone    String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  artwork Artwork @relation(fields: [artworkId], references: [id])
+  buyer   User    @relation("UserOrders", fields: [buyerId], references: [id])
+}
+
+enum OrderStatus {
+  PENDING
+  COMPLETED
+  SHIPPED
+  CANCELLED
+}

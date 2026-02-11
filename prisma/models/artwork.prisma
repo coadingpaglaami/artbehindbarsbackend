@@ -9,9 +9,12 @@ model Artwork {
   artistId         String?  @db.Uuid
   uploadedById     String?  @db.Uuid
   createdAt        DateTime @default(now())
+  isSold           Boolean  @default(false)
   artist           Artist?  @relation(fields: [artistId], references: [id])
   uploadedBy       User?    @relation("ArtworkUploadedBy", fields: [uploadedById], references: [id])
   auction          Auction?
+  // Relation to Order (An artwork can have one order)
+  order            Order?
 }
 
 enum Category {

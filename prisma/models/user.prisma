@@ -26,6 +26,8 @@ model User {
   chatParticipants    ChatParticipant[]
   messages            Message[]
   messageStatuses     MessageStatus[]
+  // Relation to Orders (A user can buy many artworks)
+  orders              Order[]           @relation("UserOrders")
 }
 
 enum Role {

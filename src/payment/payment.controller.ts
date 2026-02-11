@@ -1,13 +1,16 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
 import { PaymentService } from './payment.service';
+import type { IPaymentData } from './dto/pay.dto';
+import { AuthGuard } from '@nestjs/passport';
 
 @Controller('payment')
 export class PaymentController {
   constructor(private readonly paymentService: PaymentService) {}
   @Post('checkout')
-  async checkout(@Body() body: { sourceId: string; amount: number }) {
+  @UseGuards(AuthGuard('jwt'))
+  async checkout(@Body() paymentData: IPaymentData, @Req() req: any) {
     // amount should be in cents (e.g., 1000 = $10.00)
-    return await this.paymentService.createPayment(body.sourceId, body.amount);
+    return await this.paymentService.createPayment(paymentData, req.user.sub);
   }
 
   @Get('admin-stats')
@@ -41,7 +44,6 @@ export class PaymentController {
       this.paymentService.getMonthlyStats(startOfCurrent, endOfCurrent),
       this.paymentService.getMonthlyStats(startOfLast, endOfLast),
     ]);
-    
 
     // Helper to calculate totals
     const calculateTotals = (payments: any[]) => {
@@ -68,5 +70,11 @@ export class PaymentController {
         },
       },
     };
+  }
+
+  @Get('order/:id')
+  @UseGuards(AuthGuard('jwt'))
+  async getOrder(@Param('id') id: string) {
+    return await this.paymentService.getOrderById(id);
   }
 }
