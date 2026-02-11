@@ -305,6 +305,7 @@ export class GalleryService {
         createdAt: true,
         imageUrl: true,
         ...(isAnonymous === false && { artist: { select: { name: true } } }),
+        isSold: true,
       },
     });
 
@@ -329,6 +330,7 @@ export class GalleryService {
           { artist: { name: { contains: searchTerm, mode: 'insensitive' } } },
         ],
       }),
+      isDeleted: false, // Exclude deleted artworks
     };
 
     // ✅ Query DB with pagination and count
@@ -349,6 +351,7 @@ export class GalleryService {
           imageUrl: true,
           artist: { select: { name: true } }, // fetch artist name
           auction: { select: { id: true } }, // check if artwork is in auction
+          isSold: true, // check if artwork is sold
         },
       }),
       this.prisma.artwork.count({ where }),
@@ -366,6 +369,7 @@ export class GalleryService {
       imageUrl: artwork.imageUrl,
       artist: artwork.isAnonymous ? null : artwork.artist,
       auctionId: artwork.auction?.id || null,
+      isSold: artwork.isSold,
     }));
 
     // ✅ Return paginated response
@@ -392,6 +396,8 @@ export class GalleryService {
         startingBidPrice: true,
         imageUrl: true,
         artist: { select: { name: true, id: true } },
+        isSold: true,
+        createdAt: true,
       },
     });
     if (!artwork) {
@@ -468,6 +474,7 @@ export class GalleryService {
         startingBidPrice: true,
         createdAt: true,
         imageUrl: true,
+        isSold: true,
         ...(artwork.isAnonymous ? {} : { artist: { select: { name: true } } }),
       },
     });
@@ -481,8 +488,9 @@ export class GalleryService {
     if (!existingArtwork) {
       throw new NotFoundException('Artwork not found');
     }
-    await this.prisma.artwork.delete({
+    await this.prisma.artwork.update({
       where: { id },
+      data: { isDeleted: true },
     });
     return { message: 'Artwork deleted successfully' };
   }

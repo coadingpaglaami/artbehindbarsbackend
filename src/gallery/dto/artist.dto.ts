@@ -27,7 +27,7 @@ export type ArtWorkUploadRequestDto = Pick<
 };
 
 export type ArtWorkUploadResponseDto = ArtWorkUploadRequestDto &
-  Pick<Artwork, 'id' | 'createdAt' | 'imageUrl'>;
+  Pick<Artwork, 'id' | 'createdAt' | 'imageUrl' | 'isSold'>;
 
   export type ArtworkArtistDto = {
   name: string;

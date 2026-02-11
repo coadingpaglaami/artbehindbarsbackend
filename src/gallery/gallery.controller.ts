@@ -100,6 +100,7 @@ export class GalleryController {
       files.artistImage ? files.artistImage[0] : undefined,
     );
   }
+  
   @Delete('artist/:id')
   @UseGuards(AuthGuard('jwt'))
   @Roles(['ADMIN'])
