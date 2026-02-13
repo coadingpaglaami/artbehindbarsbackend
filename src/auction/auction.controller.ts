@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Param,
+  Patch,
   Post,
   Query,
   Req,
@@ -13,6 +14,7 @@ import { Roles } from 'src/role/decorators/role.decorator';
 import { AuthGuard } from '@nestjs/passport';
 import {
   CreateAuctionDto,
+  ExtendAuctionDto,
   GetAuctionsQueryDto,
   PlaceBidDto,
 } from './dto/auction.dto';
@@ -40,6 +42,18 @@ export class AuctionController {
   async getAuction(@Param('id') id: string) {
     return this.auctionService.getAuction(id);
   }
+
+
+  @Patch(':id/extend')
+  @UseGuards(AuthGuard('jwt'))
+  @Roles(['ADMIN'])
+  extend(
+    @Param('id') auctionId: string,
+    @Body() dto: ExtendAuctionDto,
+  ) {
+    return this.auctionService.extendAuction(auctionId, dto.newEndAt);
+  }
+
 
   // Get paginated bids
   @Get(':id/bids')

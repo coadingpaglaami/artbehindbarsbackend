@@ -10,6 +10,7 @@ import {
   CreateAuctionDto,
   GetAuctionsQueryDto,
   PlaceBidDto,
+  UserAuctionHistoryResponseDto,
 } from './dto/auction.dto';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 import { PaginatedResponseDto } from 'src/common/dto/pagination-response.dto';
@@ -18,6 +19,15 @@ import { AuctionStatus } from 'src/database/prisma-client/enums';
 @Injectable()
 export class AuctionService {
   constructor(private readonly prisma: PrismaService) {}
+
+  /** 🔑 Centralized auction status resolver */
+  private resolveAuctionStatus(startAt: Date, endAt: Date): AuctionStatus {
+    const now = new Date();
+
+    if (now < startAt) return AuctionStatus.Upcoming;
+    if (now >= startAt && now < endAt) return AuctionStatus.Ongoing;
+    return AuctionStatus.Ended;
+  }
 
   // ---------------- CREATE AUCTION ----------------
   async createAuction(dto: CreateAuctionDto): Promise<AuctionResponseDto> {
@@ -127,6 +137,115 @@ export class AuctionService {
     }
 
     return this.mapAuctionDto({ ...auction, status });
+  }
+
+  async extendAuction(auctionId: string, newEndAt: Date) {
+    const auction = await this.prisma.auction.findUnique({
+      where: { id: auctionId },
+    });
+
+    if (!auction) throw new NotFoundException();
+
+    if (
+      this.resolveAuctionStatus(auction.startAt, auction.endAt) !== 'Ongoing'
+    ) {
+      throw new BadRequestException('Only ongoing auctions can be extended');
+    }
+
+    if (newEndAt <= auction.endAt) {
+      throw new BadRequestException('New end time must be later');
+    }
+
+    return this.prisma.auction.update({
+      where: { id: auctionId },
+      data: { endAt: newEndAt },
+    });
+  }
+
+  async getUserAuctionHistory(
+    userId: string,
+    query: PaginationQueryDto,
+  ): Promise<UserAuctionHistoryResponseDto> {
+    const { page, limit } = query;
+    const skip =
+      (typeof page === 'number' ? page - 1 : 0) *
+      (typeof limit === 'number' ? limit : 10);
+
+    // 1️⃣ find auctions where user placed at least one bid
+    const auctions = await this.prisma.auction.findMany({
+      where: {
+        bids: {
+          some: {
+            userId,
+          },
+        },
+      },
+      include: {
+        bids: {
+          orderBy: { bidPrice: 'desc' },
+        },
+      },
+      skip,
+      take: limit,
+    });
+
+    const total = await this.prisma.auction.count({
+      where: {
+        bids: {
+          some: {
+            userId,
+          },
+        },
+      },
+    });
+
+    const now = new Date();
+
+    const data = auctions.map((auction) => {
+      const status = this.resolveAuctionStatus(auction.startAt, auction.endAt);
+
+      const highestBid = auction.bids[0];
+      const myHighestBid = auction.bids.find((b) => b.userId === userId);
+
+      let userBidStatus: 'WINNING' | 'OUTBID' | 'LOST';
+
+      if (status === AuctionStatus.Ongoing) {
+        userBidStatus = highestBid.userId === userId ? 'WINNING' : 'OUTBID';
+      } else {
+        userBidStatus = highestBid.userId === userId ? 'WINNING' : 'LOST';
+      }
+
+      return {
+        auctionId: auction.id,
+        artworkId: auction.artworkId,
+        artworkTitle: 'TODO: join artwork table',
+
+        myLastBid: myHighestBid?.bidPrice ?? 0,
+        highestBid: highestBid.bidPrice,
+
+        auctionStatus: status,
+        userBidStatus,
+
+        endAt: auction.endAt,
+        secondsRemaining:
+          status === AuctionStatus.Ongoing
+            ? Math.max(
+                0,
+                Math.floor((auction.endAt.getTime() - now.getTime()) / 1000),
+              )
+            : 0,
+      };
+    });
+
+    return {
+      data,
+      meta: {
+        page: page || 1,
+        limit: limit || 10,
+        total,
+        totalPages: Math.ceil(total / (limit || 10)),
+      },
+    };
   }
 
   // ---------------- GET PAGINATED BIDS ----------------

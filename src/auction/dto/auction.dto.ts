@@ -22,6 +22,11 @@ export class CreateAuctionDto {
   endAt: Date;
 }
 
+export class ExtendAuctionDto {
+  @IsDateString()
+  newEndAt: Date;
+}
+
 // User: place bid
 export class PlaceBidDto {
   @IsNotEmpty()
@@ -62,3 +67,40 @@ export class GetAuctionsQueryDto extends PaginationQueryDto {
   @Type(() => String) // 🔥 ensures query param is transformed to string
   status?: AuctionStatus;
 }
+
+export class AuctionDetailsResponseDto {
+  id: string;
+  artworkId: string;
+  artworkTitle: string;
+
+  startPrice: number;
+  currentPrice: number;
+
+  startAt: Date;
+  endAt: Date;
+  secondsRemaining: number;
+
+  status: AuctionStatus;
+
+  highestBidderId?: string;
+  highestBidderName?: string;
+
+  userBidStatus?: 'WINNING' | 'OUTBID' | 'LOST' | 'NOT_PARTICIPATED';
+}
+
+export class UserAuctionHistoryItemDto {
+  auctionId: string;
+  artworkId: string;
+  artworkTitle: string;
+
+  myLastBid: number;
+  highestBid: number;
+
+  auctionStatus: AuctionStatus;
+  userBidStatus: 'WINNING' | 'OUTBID' | 'LOST';
+
+  endAt: Date;
+  secondsRemaining: number;
+}
+
+export class UserAuctionHistoryResponseDto extends PaginatedResponseDto<UserAuctionHistoryItemDto> {}
