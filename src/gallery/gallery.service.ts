@@ -398,6 +398,14 @@ export class GalleryService {
         artist: { select: { name: true, id: true } },
         isSold: true,
         createdAt: true,
+        auction: {
+          select: {
+            id: true,
+            startAt: true,
+            endAt: true,
+            status: true,
+          },
+        },
       },
     });
     if (!artwork) {

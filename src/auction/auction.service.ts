@@ -31,44 +31,62 @@ export class AuctionService {
 
   // ---------------- CREATE AUCTION ----------------
   async createAuction(dto: CreateAuctionDto): Promise<AuctionResponseDto> {
+    // 1️⃣ Validate artwork
     const artwork = await this.prisma.artwork.findUnique({
       where: { id: dto.artworkId },
     });
 
-    if (!artwork) throw new BadRequestException('Artwork not found');
+    if (!artwork) {
+      throw new BadRequestException('Artwork not found');
+    }
 
-    // Check if auction already exists for this artwork
+    // 2️⃣ Convert dates ONCE (DTO values are strings)
+    const startAt = new Date(dto.startAt);
+    const endAt = new Date(dto.endAt);
+    const now = new Date();
+
+    if (isNaN(startAt.getTime()) || isNaN(endAt.getTime())) {
+      throw new BadRequestException('Invalid date format');
+    }
+
+    if (endAt.getTime() <= startAt.getTime()) {
+      throw new BadRequestException('endAt must be after startAt');
+    }
+
+    // 3️⃣ Prevent duplicate auctions for same artwork
     const existingAuction = await this.prisma.auction.findFirst({
       where: { artworkId: dto.artworkId },
     });
+
     if (existingAuction) {
       throw new BadRequestException('This artwork is already in an auction');
     }
 
-    // Validate start/end times
-    const now = new Date();
-    if (dto.endAt <= dto.startAt) {
-      throw new BadRequestException('End time must be after start time');
-    }
+    // 4️⃣ Compute start price (45% of buyItNowPrice)
+    const startPrice = Number((artwork.buyItNowPrice * 0.45).toFixed(2));
 
-    // Compute starting price (45% of buyItNowPrice)
-    const startPrice = +(artwork.buyItNowPrice * 0.45).toFixed(2);
+    // 5️⃣ Compute initial status (CORRECT DATE COMPARISON)
+    const status: AuctionStatus =
+      startAt.getTime() > now.getTime()
+        ? AuctionStatus.Upcoming
+        : AuctionStatus.Ongoing;
 
-    // Compute initial status
-    const status: AuctionStatus = dto.startAt > now ? 'Upcoming' : 'Ongoing';
-
+    // 6️⃣ Create auction
     const auction = await this.prisma.auction.create({
       data: {
         artworkId: dto.artworkId,
         startPrice,
         currentPrice: startPrice,
-        startAt: dto.startAt,
-        endAt: dto.endAt,
+        startAt, // ✅ Date object
+        endAt, // ✅ Date object
         status,
       },
-      include: { artwork: true },
+      include: {
+        artwork: true,
+      },
     });
 
+    // 7️⃣ Map response
     return this.mapAuctionDto(auction);
   }
 
@@ -184,6 +202,13 @@ export class AuctionService {
         bids: {
           orderBy: { bidPrice: 'desc' },
         },
+        artwork: {
+          select: {
+            id: true,
+            title: true,
+            imageUrl: true,
+          },
+        },
       },
       skip,
       take: limit,
@@ -218,7 +243,8 @@ export class AuctionService {
       return {
         auctionId: auction.id,
         artworkId: auction.artworkId,
-        artworkTitle: 'TODO: join artwork table',
+        artworkTitle: auction.artwork.title ?? '',
+        imageUrl: auction.artwork.imageUrl ?? '',
 
         myLastBid: myHighestBid?.bidPrice ?? 0,
         highestBid: highestBid.bidPrice,
@@ -303,30 +329,30 @@ export class AuctionService {
     const limit = query.limit ?? 10;
     const skip = (page - 1) * limit;
 
-    // Fetch auctions with artwork info
-    const [auctions] = await this.prisma.$transaction([
-      this.prisma.auction.findMany({
-        skip,
-        take: limit,
-        orderBy: { startAt: 'desc' },
-        include: { artwork: true },
-      }),
-      this.prisma.auction.count(),
-    ]);
-
     const now = new Date();
 
-    // Compute dynamic status and map
+    // 1️⃣ Fetch ALL auctions (status is dynamic, not DB truth)
+    const auctions = await this.prisma.auction.findMany({
+      orderBy: { startAt: 'desc' },
+      include: { artwork: true },
+    });
+
+    // 2️⃣ Map + compute dynamic status
     let mapped = auctions.map((a) => {
       let status: AuctionStatus;
-      if (now < a.startAt) status = 'Upcoming';
-      else if (now >= a.startAt && now <= a.endAt) status = 'Ongoing';
-      else status = 'Ended';
+
+      if (now < a.startAt) {
+        status = AuctionStatus.Upcoming;
+      } else if (now >= a.startAt && now < a.endAt) {
+        status = AuctionStatus.Ongoing;
+      } else {
+        status = AuctionStatus.Ended;
+      }
 
       return {
         id: a.id,
         artworkId: a.artworkId,
-        artworkTitle: a.artwork?.title || '',
+        artworkTitle: a.artwork?.title ?? '',
         startPrice: a.startPrice,
         currentPrice: a.currentPrice,
         startAt: a.startAt,
@@ -335,15 +361,17 @@ export class AuctionService {
       };
     });
 
-    // Filter by status query param
+    // 3️⃣ Filter by status (admin tabs)
     if (query.status) {
-      mapped = mapped.filter((a) => a.status === query.status);
+      mapped = mapped.filter((auction) => auction.status === query.status);
     }
 
+    // 4️⃣ Pagination AFTER filtering
     const total = mapped.length;
+    const paginatedData = mapped.slice(skip, skip + limit);
 
     return {
-      data: mapped,
+      data: paginatedData,
       meta: {
         page,
         limit,

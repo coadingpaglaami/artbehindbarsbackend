@@ -43,17 +43,21 @@ export class AuctionController {
     return this.auctionService.getAuction(id);
   }
 
+  @Get('my/history')
+  @UseGuards(AuthGuard('jwt'))
+  async getMyAuctionHistory(
+    @Req() req: any,
+    @Query() query: PaginationQueryDto,
+  ) {
+    return this.auctionService.getUserAuctionHistory(req.user.sub, query);
+  }
 
   @Patch(':id/extend')
   @UseGuards(AuthGuard('jwt'))
   @Roles(['ADMIN'])
-  extend(
-    @Param('id') auctionId: string,
-    @Body() dto: ExtendAuctionDto,
-  ) {
+  extend(@Param('id') auctionId: string, @Body() dto: ExtendAuctionDto) {
     return this.auctionService.extendAuction(auctionId, dto.newEndAt);
   }
-
 
   // Get paginated bids
   @Get(':id/bids')

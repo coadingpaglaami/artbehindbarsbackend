@@ -92,6 +92,7 @@ export class UserAuctionHistoryItemDto {
   auctionId: string;
   artworkId: string;
   artworkTitle: string;
+  imageUrl: string;
 
   myLastBid: number;
   highestBid: number;
