@@ -11,6 +11,8 @@ model User {
   otp                 String?
   otpExpiry           DateTime?
   oauthProvider       String?
+  isSuspended         Boolean           @default(false)
+  suspendedUntil      DateTime?
   otpType             OtpType?
   createdArtists      Artist[]          @relation("ArtistCreatedBy")
   uploadedArtworks    Artwork[]         @relation("ArtworkUploadedBy")
@@ -27,6 +29,13 @@ model User {
   orders              Order[]           @relation("UserOrders")
   posts               Post[]
   reports             Report[]
+
+  blockedUsers UserBlock[] @relation("Blocker")
+  blockedBy    UserBlock[] @relation("Blocked")
+
+  notifications Notification[]
+
+  auctions Auction[]
 }
 
 enum Role {
@@ -37,4 +46,16 @@ enum Role {
 enum OtpType {
   signup
   resetPassword
+}
+
+model UserBlock {
+  id        String   @id @default(uuid()) @db.Uuid
+  blockerId String   @db.Uuid
+  blockedId String   @db.Uuid
+  createdAt DateTime @default(now())
+
+  blocker User @relation("Blocker", fields: [blockerId], references: [id])
+  blocked User @relation("Blocked", fields: [blockedId], references: [id])
+
+  @@unique([blockerId, blockedId])
 }

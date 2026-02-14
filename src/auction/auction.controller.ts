@@ -9,6 +9,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import { Cron } from '@nestjs/schedule';
 import { AuctionService } from './auction.service';
 import { Roles } from 'src/role/decorators/role.decorator';
 import { AuthGuard } from '@nestjs/passport';
@@ -75,4 +76,11 @@ export class AuctionController {
   async getAllAuctions(@Query() query: GetAuctionsQueryDto) {
     return this.auctionService.getAllAuctions(query);
   }
+
+  @Cron('*/30 * * * * *') // every 30 seconds (for testing)
+  async suspendUnpaidUsers() {
+    await this.auctionService.suspendUnpaidUsers();
+  }
+
+  
 }

@@ -1,0 +1,7 @@
+-- AlterTable
+ALTER TABLE "Order" ALTER COLUMN "shippingFullName" DROP NOT NULL,
+ALTER COLUMN "shippingAddress" DROP NOT NULL,
+ALTER COLUMN "shippingCity" DROP NOT NULL,
+ALTER COLUMN "shippingState" DROP NOT NULL,
+ALTER COLUMN "shippingZip" DROP NOT NULL,
+ALTER COLUMN "shippingPhone" DROP NOT NULL;

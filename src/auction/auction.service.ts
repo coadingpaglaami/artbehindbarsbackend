@@ -149,12 +149,23 @@ export class AuctionService {
           userId,
           bidPrice: dto.bidPrice,
         },
+        include: {
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
       });
 
       return {
         userId,
         bidPrice: dto.bidPrice,
         createdAt: bid.createdAt,
+        firstName: bid.user.firstName,
+        lastName: bid.user.lastName,
       };
     });
 
@@ -414,6 +425,76 @@ export class AuctionService {
         totalPages: Math.ceil(total / limit),
       },
     };
+  }
+
+  async finalizeAuction(auctionId: string) {
+    const topBid = await this.prisma.auctionBid.findFirst({
+      where: { auctionId },
+      orderBy: { bidPrice: 'desc' },
+    });
+    const auction = await this.prisma.auction.findUnique({
+      where: { id: auctionId },
+    });
+
+    if (!topBid) return;
+
+    const due = new Date();
+    due.setHours(due.getHours() + 48);
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.order.create({
+        data: {
+          squarePaymentId: '',
+          auctionId,
+          artworkId: auction?.artworkId ?? '',
+          buyerId: topBid.userId,
+          totalAmount: topBid.bidPrice,
+          paymentDueAt: due,
+        },
+      });
+
+      await tx.notification.create({
+        data: {
+          userId: topBid.userId,
+          title: 'Auction Won',
+          message: 'You have 48 hours to complete payment.',
+        },
+      });
+    });
+  }
+  async suspendUnpaidUsers() {
+    const overdue = await this.prisma.order.findMany({
+      where: {
+        status: 'PENDING',
+        paymentDueAt: { lt: new Date() },
+      },
+    });
+
+    for (const order of overdue) {
+      const suspendUntil = new Date();
+      suspendUntil.setMonth(suspendUntil.getMonth() + 2);
+
+      await this.prisma.user.update({
+        where: { id: order.buyerId },
+        data: {
+          isSuspended: true,
+          suspendedUntil: suspendUntil,
+        },
+      });
+
+      await this.prisma.notification.create({
+        data: {
+          userId: order.buyerId,
+          title: 'Account Suspended',
+          message: 'Auction payment missed. Account suspended for 2 months.',
+        },
+      });
+
+      await this.prisma.order.update({
+        where: { id: order.id },
+        data: { status: 'CANCELLED' },
+      });
+    }
   }
 
   // ---------------- MAPPER ----------------

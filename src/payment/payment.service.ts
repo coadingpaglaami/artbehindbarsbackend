@@ -35,19 +35,22 @@ export class PaymentService {
 
       // 3. Database Transaction
       const result = await this.prismaService.$transaction(async (tx) => {
-        // Mark artwork as sold
+        // 1. Mark artwork sold
         await tx.artwork.update({
           where: { id: artworkId },
           data: { isSold: true },
         });
 
-        // CREATE THE ORDER AND RETURN IT
+        // 2. Create order WITH squarePaymentId + status
         return await tx.order.create({
           data: {
             artworkId,
             buyerId: userId,
             squarePaymentId: String(payment?.id),
+            status: 'COMPLETED',
+
             totalAmount: amount,
+
             shippingFullName: shippingInfo.fullName,
             shippingAddress: shippingInfo.streetAddress,
             shippingCity: shippingInfo.city,
@@ -56,7 +59,6 @@ export class PaymentService {
             shippingPhone: shippingInfo.phoneNumber,
           },
           include: {
-            // Using 'include' is often cleaner than 'select' for relations
             buyer: {
               select: { id: true, email: true, firstName: true },
             },

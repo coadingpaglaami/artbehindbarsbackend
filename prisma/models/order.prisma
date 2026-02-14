@@ -1,20 +1,22 @@
 model Order {
   id               String      @id @default(uuid()) @db.Uuid
-  artworkId        String      @unique @db.Uuid
+  artworkId        String?     @unique @db.Uuid
   buyerId          String      @db.Uuid
+  auctionId        String?     @db.Uuid // <-- ADD HERE
   squarePaymentId  String      @unique
   totalAmount      Float
   status           OrderStatus @default(COMPLETED)
-  shippingFullName String
-  shippingAddress  String
-  shippingCity     String
-  shippingState    String
-  shippingZip      String
-  shippingPhone    String
+  shippingFullName String?
+  shippingAddress  String?
+  shippingCity     String?
+  shippingState    String?
+  shippingZip      String?
+  shippingPhone    String?
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
-  artwork          Artwork     @relation(fields: [artworkId], references: [id])
+  artwork          Artwork?    @relation(fields: [artworkId], references: [id])
   buyer            User        @relation("UserOrders", fields: [buyerId], references: [id])
+  paymentDueAt     DateTime? // <-- ADD HERE
 }
 
 enum OrderStatus {
