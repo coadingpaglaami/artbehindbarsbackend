@@ -1,22 +1,19 @@
 model Artwork {
-  id               String   @id @default(uuid()) @db.Uuid
-  imageUrl         String
-  title            String?
-  isAnonymous      Boolean  @default(false)
-  category         Category
-  buyItNowPrice    Float
-  startingBidPrice Float?   @default(0)
-  artistId         String?  @db.Uuid
-  uploadedById     String?  @db.Uuid
-  createdAt        DateTime @default(now())
-  isDeleted        Boolean  @default(false) // 👈 ADD THIS
-
-  isSold     Boolean  @default(false)
-  artist     Artist?  @relation(fields: [artistId], references: [id])
-  uploadedBy User?    @relation("ArtworkUploadedBy", fields: [uploadedById], references: [id])
-  auction    Auction?
-  // Relation to Order (An artwork can have one order)
-  order      Order?
+  id            String   @id @default(uuid()) @db.Uuid
+  imageUrl      String
+  title         String?
+  isAnonymous   Boolean  @default(false)
+  category      Category
+  buyItNowPrice Float
+  artistId      String?  @db.Uuid
+  uploadedById  String?  @db.Uuid
+  createdAt     DateTime @default(now())
+  isSold        Boolean  @default(false)
+  isDeleted     Boolean  @default(false)
+  artist        Artist?  @relation(fields: [artistId], references: [id])
+  uploadedBy    User?    @relation("ArtworkUploadedBy", fields: [uploadedById], references: [id])
+  auction       Auction?
+  order         Order?
 }
 
 enum Category {

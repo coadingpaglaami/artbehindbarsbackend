@@ -1,6 +1,9 @@
 import {
+  ConnectedSocket,
+  MessageBody,
   OnGatewayConnection,
   OnGatewayDisconnect,
+  SubscribeMessage,
   WebSocketGateway,
 } from '@nestjs/websockets';
 import { SocketService } from './socket.service';
@@ -43,5 +46,22 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   async handleDisconnect(client: Socket) {
     await this.socketService.removeSocket(client.id);
+  }
+
+  @SubscribeMessage('joinAuction')
+  handleJoinAuction(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() auctionId: string,
+  ) {
+    this.socketService.joinAuctionRoom(client.id, auctionId);
+  }
+
+  // 🔥 LEAVE AUCTION ROOM
+  @SubscribeMessage('leaveAuction')
+  handleLeaveAuction(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() auctionId: string,
+  ) {
+    this.socketService.leaveAuctionRoom(client.id, auctionId);
   }
 }

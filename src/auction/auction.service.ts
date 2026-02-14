@@ -15,10 +15,14 @@ import {
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 import { PaginatedResponseDto } from 'src/common/dto/pagination-response.dto';
 import { AuctionStatus } from 'src/database/prisma-client/enums';
+import { SocketService } from 'src/socket/socket.service';
 
 @Injectable()
 export class AuctionService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly socket: SocketService,
+  ) {}
 
   /** 🔑 Centralized auction status resolver */
   private resolveAuctionStatus(startAt: Date, endAt: Date): AuctionStatus {
@@ -92,43 +96,74 @@ export class AuctionService {
 
   // ---------------- PLACE BID ----------------
   async placeBid(userId: string, dto: PlaceBidDto): Promise<AuctionBidDto> {
-    const auction = await this.prisma.auction.findUnique({
-      where: { id: dto.auctionId },
-    });
-    if (!auction) throw new BadRequestException('Auction not found');
+    const result = await this.prisma.$transaction(async (tx) => {
+      // 1️⃣ Fetch auction
+      const auction = await tx.auction.findUnique({
+        where: { id: dto.auctionId },
+      });
 
-    // Only allow bids if ongoing
-    if (auction.status !== 'Ongoing')
-      throw new BadRequestException('Auction is not active');
+      if (!auction) throw new BadRequestException('Auction not found');
+      if (auction.status !== 'Ongoing')
+        throw new BadRequestException('Auction is not active');
 
-    // Minimum bid: 5% higher than current price
-    const minBid = +(auction.currentPrice * 1.05).toFixed(2);
-    if (dto.bidPrice < minBid) {
-      throw new BadRequestException(
-        `Bid must be at least 5% higher than current price (${minBid})`,
-      );
-    }
+      // 2️⃣ Get current highest bid
+      const highestBid = await tx.auctionBid.findFirst({
+        where: { auctionId: dto.auctionId },
+        orderBy: { bidPrice: 'desc' },
+      });
 
-    // Save bid
-    const bid = await this.prisma.auctionBid.create({
-      data: {
-        auctionId: dto.auctionId,
+      // 3️⃣ If same user already highest bidder → block
+      if (highestBid && highestBid.userId === userId) {
+        throw new BadRequestException(
+          'You are already the highest bidder. Wait for another user to bid.',
+        );
+      }
+
+      // 4️⃣ Minimum bid check (based on latest currentPrice)
+      const minBid = +(auction.currentPrice * 1.05).toFixed(2);
+      if (dto.bidPrice < minBid) {
+        throw new BadRequestException(
+          `Bid must be at least 5% higher than current price (${minBid})`,
+        );
+      }
+
+      // 5️⃣ Conditional update (race condition protection)
+      const updated = await tx.auction.updateMany({
+        where: {
+          id: dto.auctionId,
+          currentPrice: auction.currentPrice,
+        },
+        data: { currentPrice: dto.bidPrice },
+      });
+
+      if (updated.count === 0) {
+        throw new BadRequestException(
+          'Bid failed. Another user placed a higher bid just now.',
+        );
+      }
+
+      // 6️⃣ Save bid
+      const bid = await tx.auctionBid.create({
+        data: {
+          auctionId: dto.auctionId,
+          userId,
+          bidPrice: dto.bidPrice,
+        },
+      });
+
+      return {
         userId,
         bidPrice: dto.bidPrice,
-      },
+        createdAt: bid.createdAt,
+      };
     });
 
-    // Update auction currentPrice
-    await this.prisma.auction.update({
-      where: { id: dto.auctionId },
-      data: { currentPrice: dto.bidPrice },
+    this.socket.emitToAuction(dto.auctionId, 'auction:newBid', {
+      auctionId: dto.auctionId,
+      ...result,
     });
 
-    return {
-      userId,
-      bidPrice: dto.bidPrice,
-      createdAt: bid.createdAt,
-    };
+    return result;
   }
 
   // ---------------- GET SINGLE AUCTION ----------------

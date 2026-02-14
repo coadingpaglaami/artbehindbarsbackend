@@ -170,7 +170,6 @@ export class GalleryService {
         title: true,
         category: true,
         buyItNowPrice: true,
-        startingBidPrice: true,
         isAnonymous: true,
         createdAt: true,
         imageUrl: true,
@@ -184,7 +183,7 @@ export class GalleryService {
         totalPages: 1,
       },
       data: artworks,
-    } as PaginatedResponseDto<ArtworkResponseDto>;
+    } as unknown as PaginatedResponseDto<ArtworkResponseDto>;
   }
 
   async updateArtist(
@@ -266,7 +265,7 @@ export class GalleryService {
       throw new BadRequestException('User not found');
     }
     const artworkImage = await this.uploadService.uploadSingleImage(file);
-    const { title, category, buyItNowPrice, startingBidPrice } = artwork;
+    const { title, category, buyItNowPrice } = artwork;
     let { artistId, isAnonymous } = artwork;
 
     if (typeof isAnonymous === 'string' && isAnonymous === 'true') {
@@ -290,7 +289,6 @@ export class GalleryService {
         isAnonymous, // Convert to boolean
         category,
         buyItNowPrice: parseFloat(buyItNowPrice as unknown as string),
-        startingBidPrice: parseFloat(startingBidPrice as unknown as string),
         ...(isAnonymous ? {} : { artistId }),
         imageUrl: artworkImage,
       },
@@ -300,7 +298,6 @@ export class GalleryService {
         isAnonymous: true,
         category: true,
         buyItNowPrice: true,
-        startingBidPrice: true,
         ...(isAnonymous ? {} : { artistId: true }),
         createdAt: true,
         imageUrl: true,
@@ -309,7 +306,7 @@ export class GalleryService {
       },
     });
 
-    return newArtwork;
+    return newArtwork as unknown as ArtWorkUploadResponseDto;
   }
 
   async getAllArtworks(
@@ -346,11 +343,18 @@ export class GalleryService {
           isAnonymous: true,
           category: true,
           buyItNowPrice: true,
-          startingBidPrice: true,
           createdAt: true,
           imageUrl: true,
           artist: { select: { name: true } }, // fetch artist name
-          auction: { select: { id: true } }, // check if artwork is in auction
+          auction: {
+            select: {
+              id: true,
+              currentPrice: true,
+              startAt: true,
+              endAt: true,
+              status: true,
+            },
+          }, // check if artwork is in auction
           isSold: true, // check if artwork is sold
         },
       }),
@@ -364,12 +368,12 @@ export class GalleryService {
       isAnonymous: artwork.isAnonymous,
       category: artwork.category,
       buyItNowPrice: artwork.buyItNowPrice,
-      startingBidPrice: artwork.startingBidPrice,
       createdAt: artwork.createdAt,
       imageUrl: artwork.imageUrl,
       artist: artwork.isAnonymous ? null : artwork.artist,
       auctionId: artwork.auction?.id || null,
       isSold: artwork.isSold,
+      auction: artwork.auction ?? null,
     }));
 
     // ✅ Return paginated response
@@ -393,7 +397,6 @@ export class GalleryService {
         isAnonymous: true,
         category: true,
         buyItNowPrice: true,
-        startingBidPrice: true,
         imageUrl: true,
         artist: { select: { name: true, id: true } },
         isSold: true,
@@ -445,9 +448,6 @@ export class GalleryService {
     if (typeof artwork.buyItNowPrice === 'string') {
       artwork.buyItNowPrice = parseFloat(artwork.buyItNowPrice);
     }
-    if (typeof artwork.startingBidPrice === 'string') {
-      artwork.startingBidPrice = parseFloat(artwork.startingBidPrice);
-    }
     if (artwork.isAnonymous === true) {
       artwork.artistId = null;
     }
@@ -458,8 +458,6 @@ export class GalleryService {
         title: artwork.title ?? existingArtwork.title,
         category: artwork.category ?? existingArtwork.category,
         buyItNowPrice: artwork.buyItNowPrice ?? existingArtwork.buyItNowPrice,
-        startingBidPrice:
-          artwork.startingBidPrice ?? existingArtwork.startingBidPrice,
         ...(imageUrl ? { imageUrl } : {}),
         isAnonymous:
           artwork.isAnonymous !== undefined
@@ -479,7 +477,6 @@ export class GalleryService {
         isAnonymous: true,
         category: true,
         buyItNowPrice: true,
-        startingBidPrice: true,
         createdAt: true,
         imageUrl: true,
         isSold: true,

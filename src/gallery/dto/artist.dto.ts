@@ -1,7 +1,13 @@
 import { Type } from 'class-transformer';
 import { IsEnum, IsOptional } from 'class-validator';
+import { AuctionResponseDto } from 'src/auction/dto/auction.dto';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
-import { Artist, Artwork, Category } from 'src/database/prisma-client/client';
+import {
+  Artist,
+  Artwork,
+  Auction,
+  Category,
+} from 'src/database/prisma-client/client';
 
 export type ArtistRequestDto = Pick<
   Artist,
@@ -21,7 +27,7 @@ export type ArtistUpdateDto = Partial<ArtistRequestDto>;
 
 export type ArtWorkUploadRequestDto = Pick<
   Artwork,
-  'artistId' | 'title' | 'isAnonymous' | 'category' |'startingBidPrice'
+  'artistId' | 'title' | 'isAnonymous' | 'category'
 > & {
   buyItNowPrice: string | number;
 };
@@ -29,7 +35,7 @@ export type ArtWorkUploadRequestDto = Pick<
 export type ArtWorkUploadResponseDto = ArtWorkUploadRequestDto &
   Pick<Artwork, 'id' | 'createdAt' | 'imageUrl' | 'isSold'>;
 
-  export type ArtworkArtistDto = {
+export type ArtworkArtistDto = {
   name: string;
 };
 
@@ -40,20 +46,19 @@ export type ArtworkResponseDto = Pick<
   | 'isAnonymous'
   | 'category'
   | 'buyItNowPrice'
-  | 'startingBidPrice'
   | 'createdAt'
   | 'imageUrl'
+  | 'isSold'
 > & {
   artist: ArtworkArtistDto | null;
+  auction: Pick<AuctionResponseDto,"id" | "currentPrice" | "startAt" | "endAt" | "status"> | null;
+  auctionId: string | null;
 };
-
-
-
 
 export class GetArtworksQueryDto extends PaginationQueryDto {
   @IsOptional()
   @IsEnum(Category)
-  @Type(() => String)  // 🔥 important: transforms query param to string
+  @Type(() => String) // 🔥 important: transforms query param to string
   category?: Category;
   @IsOptional()
   searchTerm?: string;

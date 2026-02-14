@@ -15,19 +15,18 @@ model User {
   createdArtists      Artist[]          @relation("ArtistCreatedBy")
   uploadedArtworks    Artwork[]         @relation("ArtworkUploadedBy")
   auctionBids         AuctionBid[]
+  chatParticipants    ChatParticipant[]
   comments            Comment[]
   receivedConnections Connection[]      @relation("Receiver")
   sentConnections     Connection[]      @relation("Requester")
   fanMails            FanMail[]
   fanMailReplies      FanMailReply[]
   likes               Like[]
-  posts               Post[]
-  reports             Report[]
-  chatParticipants    ChatParticipant[]
   messages            Message[]
   messageStatuses     MessageStatus[]
-  // Relation to Orders (A user can buy many artworks)
   orders              Order[]           @relation("UserOrders")
+  posts               Post[]
+  reports             Report[]
 }
 
 enum Role {
