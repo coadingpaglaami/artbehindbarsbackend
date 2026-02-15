@@ -1,4 +1,9 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { SquareClient, SquareEnvironment, SquareError } from 'square'; // New names
 import { v4 as uuidv4 } from 'uuid';
 import { IPaymentData } from './dto/pay.dto';
@@ -14,16 +19,14 @@ export class PaymentService {
       environment: SquareEnvironment.Sandbox,
     });
   }
-
   async createPayment(paymentData: IPaymentData, userId: string) {
-    const { sourceId, amount, shippingInfo, artworkId } = paymentData;
+    const { sourceId, amount, shippingInfo, artworkId, orderId } = paymentData;
 
     try {
-      // 1. Correct Amount Calculation (Dollars to Cents)
-      // If amount is 15.15, amountInCents must be 1515
-      const amountInCents = BigInt(Math.round(amount));
+      // ✅ 1. Convert Dollars → Cents correctly
+      const amountInCents = BigInt(Math.round(amount * 100));
 
-      // 2. Process Square Payment
+      // ✅ 2. Create Square Payment FIRST
       const { payment } = await this.client.payments.create({
         idempotencyKey: uuidv4(),
         sourceId,
@@ -33,67 +36,139 @@ export class PaymentService {
         },
       });
 
-      // 3. Database Transaction
+      if (!payment?.id) {
+        throw new Error('Square payment failed');
+      }
+
+      // ✅ 3. DB TRANSACTION
       const result = await this.prismaService.$transaction(async (tx) => {
-        // 1. Mark artwork sold
-        await tx.artwork.update({
-          where: { id: artworkId },
-          data: { isSold: true },
-        });
+        let order;
 
-        // 2. Create order WITH squarePaymentId + status
-        return await tx.order.create({
-          data: {
-            artworkId,
-            buyerId: userId,
-            squarePaymentId: String(payment?.id),
-            status: 'COMPLETED',
-
-            totalAmount: amount,
-
-            shippingFullName: shippingInfo.fullName,
-            shippingAddress: shippingInfo.streetAddress,
-            shippingCity: shippingInfo.city,
-            shippingState: shippingInfo.state,
-            shippingZip: shippingInfo.zipCode,
-            shippingPhone: shippingInfo.phoneNumber,
-          },
-          include: {
-            buyer: {
-              select: { id: true, email: true, firstName: true },
+        // ============================
+        // 🔥 AUCTION FLOW
+        // ============================
+        if (orderId) {
+          const existingOrder = await tx.order.findFirst({
+            where: {
+              id: orderId,
+              buyerId: userId,
+              status: 'PENDING',
             },
-            artwork: {
-              select: { id: true, title: true, imageUrl: true },
+          });
+
+          if (!existingOrder) {
+            throw new NotFoundException('Pending order not found');
+          }
+
+          order = await tx.order.update({
+            where: { id: existingOrder.id },
+            data: {
+              squarePaymentId: String(payment.id),
+              status: 'COMPLETED',
+              totalAmount: amount,
+
+              shippingFullName: shippingInfo.fullName,
+              shippingAddress: shippingInfo.streetAddress,
+              shippingCity: shippingInfo.city,
+              shippingState: shippingInfo.state,
+              shippingZip: shippingInfo.zipCode,
+              shippingPhone: shippingInfo.phoneNumber,
             },
-          },
-        });
+            include: {
+              buyer: {
+                select: { id: true, email: true, firstName: true },
+              },
+              artwork: {
+                select: { id: true, title: true, imageUrl: true },
+              },
+            },
+          });
+
+          // mark artwork sold
+          await tx.artwork.update({
+            where: { id: existingOrder.artworkId as string },
+            data: { isSold: true },
+          });
+        }
+
+        // ============================
+        // 🔥 BUY NOW FLOW
+        // ============================
+        else if (artworkId) {
+          // Check if artwork already sold
+          const artwork = await tx.artwork.findUnique({
+            where: { id: artworkId },
+          });
+
+          if (!artwork || artwork.isSold) {
+            throw new BadRequestException('Artwork already sold');
+          }
+
+          // Mark artwork sold
+          await tx.artwork.update({
+            where: { id: artworkId },
+            data: { isSold: true },
+          });
+
+          // Create new order
+          order = await tx.order.create({
+            data: {
+              artworkId,
+              buyerId: userId,
+              squarePaymentId: String(payment.id),
+              status: 'COMPLETED',
+              totalAmount: amount,
+
+              shippingFullName: shippingInfo.fullName,
+              shippingAddress: shippingInfo.streetAddress,
+              shippingCity: shippingInfo.city,
+              shippingState: shippingInfo.state,
+              shippingZip: shippingInfo.zipCode,
+              shippingPhone: shippingInfo.phoneNumber,
+            },
+            include: {
+              buyer: {
+                select: { id: true, email: true, firstName: true },
+              },
+              artwork: {
+                select: { id: true, title: true, imageUrl: true },
+              },
+            },
+          });
+        } else {
+          throw new BadRequestException(
+            'Either orderId (auction) or artworkId (buy now) is required',
+          );
+        }
+
+        return order;
       });
 
-      // Return the serialized result (The DB Order)
-      return this.serializeBigInt(result);
+      return await this.serializeBigInt(result);
     } catch (error) {
-      // IMPORTANT: Log the actual error to your terminal so you can see it!
       console.error('--- PAYMENT ERROR LOG ---');
       console.error(error);
 
       if (error instanceof SquareError) {
         console.error('Square Specific Errors:', error.errors);
-        throw new InternalServerErrorException(error.errors[0].detail);
+        throw new InternalServerErrorException(
+          error.errors?.[0]?.detail || 'Square payment failed',
+        );
       }
 
-      // If it's a Prisma error, the 'console.error(error)' above will now show it
       throw new InternalServerErrorException(
         error.message || 'Payment processing failed',
       );
     }
   }
+
   async getMonthlyStats(start: string, end: string) {
     try {
       const { data } = await this.client.payments.list({
         beginTime: start,
         endTime: end,
       });
-      return this.serializeBigInt(data || []);
+      return await this.serializeBigInt(data || []);
     } catch (error) {
       if (error instanceof SquareError) {
         console.error(error.errors);
@@ -102,7 +177,7 @@ export class PaymentService {
     }
   }
 
-  private serializeBigInt(obj: any) {
+  private async serializeBigInt(obj: any) {
     return JSON.parse(
       JSON.stringify(obj, (key, value) =>
         typeof value === 'bigint' ? value.toString() : value,

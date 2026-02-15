@@ -57,6 +57,8 @@ export type ForgetPasswordResponseDto = {
 };
 
 export type OTPResponseDto = {
+  accessToken?: string;
+  refreshToken?: string;
   email: string;
   otpType: 'signup' | 'resetPassword';
   verified: boolean;

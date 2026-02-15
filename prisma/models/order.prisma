@@ -16,6 +16,7 @@ model Order {
   updatedAt        DateTime    @updatedAt
   artwork          Artwork?    @relation(fields: [artworkId], references: [id])
   buyer            User        @relation("UserOrders", fields: [buyerId], references: [id])
+  auction          Auction?    @relation(fields: [auctionId], references: [id]) // <-- ADD HERE
   paymentDueAt     DateTime? // <-- ADD HERE
 }
 

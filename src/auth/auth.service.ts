@@ -147,7 +147,7 @@ export class AuthService {
     const user = await this.verifyOtpOrThrow(dto.email, dto.otp, 'signup');
 
     // clear otp after verify
-    await this.prisma.user.update({
+    const updatedUser = await this.prisma.user.update({
       where: { email: dto.email },
       data: {
         otp: null,
@@ -155,9 +155,16 @@ export class AuthService {
         otpType: null,
       },
     });
-
+    const payload = {
+      sub: updatedUser.id,
+      email: updatedUser.email,
+      role: updatedUser.role,
+    };
+    const { accessToken, refreshToken } = await this.generateTokens(payload);
     return {
-      email: user.email,
+      accessToken,
+      refreshToken,
+      email: updatedUser.email,
       otpType: 'signup',
       verified: true,
     };
@@ -210,7 +217,7 @@ export class AuthService {
 
     const otp = this.generateOtp();
     const otpExpiry = this.getOtpExpiry(5);
-    console.log(otp)
+    console.log(otp);
 
     await this.prisma.user.update({
       where: { email: dto.email },

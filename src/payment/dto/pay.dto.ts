@@ -1,3 +1,5 @@
+import { Order } from "src/database/prisma-client/client";
+
 export interface IShippingInfo {
   fullName: string;
   streetAddress: string;
@@ -12,4 +14,8 @@ export interface IPaymentData {
   amount: number;
   artworkId: string;
   shippingInfo: IShippingInfo;
+  auctionId?: string; // Optional, only for auction purchases
+  orderId?: string;   // Optional, only for auction purchases
+// Add userId to the payment data
 }
+

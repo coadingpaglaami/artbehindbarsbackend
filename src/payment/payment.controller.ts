@@ -10,6 +10,7 @@ export class PaymentController {
   @UseGuards(AuthGuard('jwt'))
   async checkout(@Body() paymentData: IPaymentData, @Req() req: any) {
     // amount should be in cents (e.g., 1000 = $10.00)
+    console.log(paymentData,"<--- Received payment data in controller");
     return await this.paymentService.createPayment(paymentData, req.user.sub);
   }
 

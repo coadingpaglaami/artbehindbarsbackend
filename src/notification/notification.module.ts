@@ -8,5 +8,6 @@ import { PrismaModule } from 'src/database/prisma.module';
   imports:[AuthModule,PrismaModule],
   controllers: [NotificationController],
   providers: [NotificationService],
+  exports: [NotificationService], // Exporting the service to be used in other modules    
 })
 export class NotificationModule {}

@@ -14,7 +14,10 @@ import {
 } from './dto/auction.dto';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 import { PaginatedResponseDto } from 'src/common/dto/pagination-response.dto';
-import { AuctionStatus } from 'src/database/prisma-client/enums';
+import {
+  AuctionStatus,
+  NotificationType,
+} from 'src/database/prisma-client/enums';
 import { SocketService } from 'src/socket/socket.service';
 
 @Injectable()
@@ -334,7 +337,8 @@ export class AuctionService {
         where: { auctionId },
         skip,
         take: limit,
-        orderBy: { createdAt: 'asc' },
+        orderBy: { createdAt: 'desc' }, // 🔹 newest first
+
         select: {
           user: {
             select: {
@@ -432,36 +436,50 @@ export class AuctionService {
       where: { auctionId },
       orderBy: { bidPrice: 'desc' },
     });
+
     const auction = await this.prisma.auction.findUnique({
       where: { id: auctionId },
     });
-
-    if (!topBid) return;
+    if (!topBid || !auction || !auction.artworkId) return;
 
     const due = new Date();
     due.setHours(due.getHours() + 48);
 
     await this.prisma.$transaction(async (tx) => {
-      await tx.order.create({
+      // 1️⃣ Create pending order
+      const order = await tx.order.create({
         data: {
           squarePaymentId: '',
           auctionId,
-          artworkId: auction?.artworkId ?? '',
+          artworkId: auction.artworkId,
           buyerId: topBid.userId,
           totalAmount: topBid.bidPrice,
           paymentDueAt: due,
+          status: 'PENDING',
         },
       });
 
-      await tx.notification.create({
+      // 2️⃣ Create notification
+      const notification = await tx.notification.create({
         data: {
           userId: topBid.userId,
           title: 'Auction Won',
-          message: 'You have 48 hours to complete payment.',
+          message: `You have 48 hours to complete payment. Please pay $${topBid.bidPrice} for artwork ${process.env.FRONTEND_URL}/order/${order.id} to avoid suspension.`,
+          type: NotificationType.PAYMENT,
         },
       });
+
+      // 3️⃣ Mark auction ended
+      await tx.auction.update({
+        where: { id: auctionId },
+        data: { status: AuctionStatus.Ended },
+      });
+
+      // 4️⃣ Emit notification via socket
+      this.socket.emitToUser(topBid.userId, 'notification', notification);
     });
   }
+
   async suspendUnpaidUsers() {
     const overdue = await this.prisma.order.findMany({
       where: {
@@ -497,6 +515,30 @@ export class AuctionService {
     }
   }
 
+  // ---------------- AUTO STATUS UPDATE ----------------
+  async updateAuctionStatuses() {
+    const now = new Date();
+
+    // Upcoming → Ongoing
+    await this.prisma.auction.updateMany({
+      where: {
+        status: AuctionStatus.Upcoming,
+        startAt: { lte: now },
+        endAt: { gt: now },
+      },
+      data: { status: AuctionStatus.Ongoing },
+    });
+
+    // Ongoing → Ended
+    await this.prisma.auction.updateMany({
+      where: {
+        status: AuctionStatus.Ongoing,
+        endAt: { lte: now },
+      },
+      data: { status: AuctionStatus.Ended },
+    });
+  }
+
   // ---------------- MAPPER ----------------
   private mapAuctionDto(auction: any): AuctionResponseDto {
     return {
@@ -509,5 +551,22 @@ export class AuctionService {
       endAt: auction.endAt,
       status: auction.status,
     };
+  }
+
+  async getOrderByAuctionId(orderId: string) {
+    return this.prisma.order.findFirst({
+      where: { id: orderId },
+      include: {
+        buyer: {
+          select: { id: true, email: true, firstName: true },
+        },
+        artwork: {
+          select: { id: true, title: true, imageUrl: true },
+        },
+        auction: {
+          select: { id: true, currentPrice: true },
+        },   
+      },
+    });
   }
 }

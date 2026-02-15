@@ -15,10 +15,26 @@ import { ContactUsModule } from './contact_us/contact_us.module';
 import { ChatModule } from './chat/chat.module';
 import { PaymentModule } from './payment/payment.module';
 import { NotificationModule } from './notification/notification.module';
-
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
-  imports: [PrismaModule, AuthModule, MailModule, RoleModule, UploadModule, GalleryModule, AuctionModule, PostModule, SocketModule, ConnectionModule, ContactUsModule, ChatModule, PaymentModule, NotificationModule],
+  imports: [
+    PrismaModule,
+    AuthModule,
+    MailModule,
+    RoleModule,
+    UploadModule,
+    GalleryModule,
+    AuctionModule,
+    PostModule,
+    SocketModule,
+    ConnectionModule,
+    ContactUsModule,
+    ChatModule,
+    PaymentModule,
+    NotificationModule,
+    ScheduleModule.forRoot(),
+  ],
   controllers: [AppController],
   providers: [AppService],
 })

@@ -12,6 +12,8 @@ model Auction {
   createdAt    DateTime      @default(now())
   artwork      Artwork       @relation(fields: [artworkId], references: [id])
   bids         AuctionBid[]
+
+  orders Order[]
 }
 
 model AuctionBid {

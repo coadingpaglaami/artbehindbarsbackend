@@ -1,14 +1,20 @@
-import 'dotenv/config';
+import * as dotenv from 'dotenv';
+dotenv.config({
+  path: `.env.${process.env.NODE_ENV || 'development'}`,
+});
+
+
 
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
     app.enableCors(
       {
-        origin:[process.env.FRONTEND_URL]
+        origin:[process.env.FRONTEND_URL, process.env.FRONTEND_NETWORK_URL, process.env.BACKEND_NETWORK_URL],
       }
     );
 
@@ -23,6 +29,6 @@ async function bootstrap() {
 
   console.log(process.env.DATABASE_URL);
 
-  await app.listen(process.env.PORT ?? 4900);
+  await app.listen(process.env.PORT!);
 }
 bootstrap();
