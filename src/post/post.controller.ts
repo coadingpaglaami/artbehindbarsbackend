@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -22,6 +23,10 @@ import {
 } from './dto/post.dto';
 import { Roles } from 'src/role/decorators/role.decorator';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
+import type { AdminGetPostsQueryDto, CategoryResponse, GetPostQueryDto } from './dto/post.dto';
+import { RolesGuard } from 'src/role/guard/role.guard';
+import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { PaginatedResponseDto } from 'src/common/dto/pagination-response.dto';
 
 @Controller('post')
 export class PostController {
@@ -48,19 +53,19 @@ export class PostController {
     );
   }
   @Get()
-  getAllPosts(@Query('page') page = 1, @Query('limit') limit = 10) {
-    return this.postService.getAllPosts(+page, +limit);
+  getAllPosts(@Query() query: GetPostQueryDto) {
+    return this.postService.getAllPosts(query);
   }
 
-  @Get('states')
-  getStates() {
-    return this.postService.getAllStates();
+  @Get('states' )
+  getStates(@Query() query: PaginationQueryDto) {
+    return this.postService.getAllStates(query);
   }
 
   @Get('categories')
-  getCategories() {
+  async getCategories(@Query() query: PaginationQueryDto):Promise<PaginatedResponseDto<CategoryResponse>> {
     console.log('This Get Executing');
-    return this.postService.getAllCategories();
+    return await this.postService.getAllCategories(query);
   }
 
   @Get(':id')
@@ -114,5 +119,26 @@ export class PostController {
   @Roles(['ADMIN'])
   createState(@Body() dto: CreateStateDto) {
     return this.postService.createState(dto);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Roles(['ADMIN'])
+  @Get('admin/reported-posts')
+  getReportedPosts(@Query() query:AdminGetPostsQueryDto):Promise<PaginatedResponseDto<any>> {
+    return this.postService.getReportedPosts(query);
+  }
+
+  @Roles(['ADMIN'])
+  @Delete('admin/posts/:id')
+  @UseGuards(AuthGuard('jwt'))
+  deletePost(@Param('id') postId: string) {
+    return this.postService.adminDeletePost(postId);
+  }
+
+  @Roles(['ADMIN'])
+  @Post('admin/users/:id/suspend')
+  @UseGuards(AuthGuard('jwt'))
+  suspendUser(@Param('id') userId: string, @Body('days') days: number) {
+    return this.postService.adminSuspendUser(userId, days);
   }
 }

@@ -7,15 +7,20 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from 'src/database/prisma.service';
 import {
+  AdminGetPostsQueryDto,
+  CategoryResponse,
   CreateCategoryDto,
   CreateCommentDto,
   CreatePostDto,
   CreateReportDto,
   CreateStateDto,
+  GetPostQueryDto,
   PostResponse,
+  StateResponse,
 } from './dto/post.dto';
 import { UploadService } from 'src/upload/upload.service';
 import { PaginatedResponseDto } from 'src/common/dto/pagination-response.dto';
+import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 
 @Injectable()
 export class PostService {
@@ -259,21 +264,36 @@ export class PostService {
     });
   }
 
-  async getAllPosts(page: number, limit: number) {
+  async getAllPosts(query: GetPostQueryDto) {
+    const { page = 1, limit = 10, stateId, topicId, recent, popular } = query;
     if (page < 1 || limit < 1) {
       throw new BadRequestException('Invalid pagination parameters');
     }
 
-    const total = await this.prisma.post.count();
+    const where: any = {};
+
+    if (stateId) where.stateId = stateId;
+    if (topicId) where.topicId = topicId;
+
+    let orderBy: any = { createdAt: 'desc' };
+
+    if (popular) {
+      orderBy = { likes: 'desc' }; // or likesCount
+    }
+
+    if (recent) {
+      orderBy = { createdAt: 'desc' };
+    }
+
+    const total = await this.prisma.post.count({ where });
 
     const posts = await this.prisma.post.findMany({
+      where,
       skip: (page - 1) * limit,
       take: limit,
-      orderBy: { createdAt: 'desc' },
+      orderBy,
       select: this.postSelect(),
     });
-
-    const totalPages = Math.ceil(total / limit);
 
     return {
       data: posts,
@@ -281,7 +301,7 @@ export class PostService {
         total,
         page,
         limit,
-        totalPages,
+        totalPages: Math.ceil(total / limit),
       },
     } as PaginatedResponseDto<PostResponse>;
   }
@@ -313,11 +333,152 @@ export class PostService {
     });
   }
 
-  async getAllCategories() {
-    return this.prisma.topics.findMany();
+  async getAllCategories(
+    query: PaginationQueryDto,
+  ): Promise<PaginatedResponseDto<CategoryResponse>> {
+    const { page = 1, limit = 10 } = query;
+    if (page < 1 || limit < 1) {
+      throw new BadRequestException('Invalid pagination parameters');
+    }
+
+    const total = await this.prisma.topics.count();
+    const categories = await this.prisma.topics.findMany({
+      skip: (page - 1) * limit,
+      take: limit,
+      select: {
+        id: true,
+        name: true,
+      },
+    });
+
+    return {
+      data: categories,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    } as PaginatedResponseDto<CategoryResponse>;
   }
 
-  async getAllStates() {
-    return this.prisma.state.findMany();
+  async getAllStates(
+    query: PaginationQueryDto,
+  ): Promise<PaginatedResponseDto<StateResponse>> {
+    const { page = 1, limit = 10 } = query;
+    if (page < 1 || limit < 1) {
+      throw new BadRequestException('Invalid pagination parameters');
+    }
+
+    const total = await this.prisma.state.count();
+    const states = await this.prisma.state.findMany({
+      skip: (page - 1) * limit,
+      take: limit,
+      select: {
+        id: true,
+        name: true,
+      },
+    });
+
+    return {
+      data: states,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    } as PaginatedResponseDto<StateResponse>;
+  }
+  async getReportedPosts(
+    query: AdminGetPostsQueryDto,
+  ): Promise<PaginatedResponseDto<any>> {
+    const { page = 1, limit = 10, minReports = 4 } = query;
+    if (page < 1 || limit < 1) {
+      throw new BadRequestException('Invalid pagination parameters');
+    }
+
+    const posts = await this.prisma.post.findMany({
+      where: {
+        reports: {
+          some: {},
+        },
+      },
+      include: {
+        reports: {
+          include: {
+            user: {
+              select: {
+                firstName: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // Filter posts having >= minReports
+    const filtered = posts.filter((p) => p.reports.length >= minReports);
+
+    // Apply pagination
+    const total = filtered.length;
+    const paginatedPosts = filtered.slice((page - 1) * limit, page * limit);
+
+    const data = paginatedPosts.map((post) => ({
+      postId: post.id,
+      title: post.title,
+      reportCount: post.reports.length,
+      reports: post.reports.map((r) => ({
+        userFirstName: r.user.firstName,
+        message: r.message,
+        reason: r.reason,
+      })),
+    }));
+
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async adminDeletePost(postId: string) {
+    await this.prisma.$transaction([
+      this.prisma.like.deleteMany({ where: { postId } }),
+      this.prisma.comment.deleteMany({ where: { postId } }),
+      this.prisma.report.deleteMany({ where: { postId } }),
+      this.prisma.post.delete({ where: { id: postId } }),
+    ]);
+
+    return { message: 'Post deleted successfully' };
+  }
+
+  async adminSuspendUser(userId: string, days: number) {
+    const suspendUntil = new Date();
+    suspendUntil.setDate(suspendUntil.getDate() + days);
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        isSuspended: true,
+        suspendedUntil: suspendUntil,
+      },
+    });
+
+    await this.prisma.notification.create({
+      data: {
+        userId,
+        title: 'Account Suspended',
+        message: `Your account has been suspended for ${days} days.`,
+      },
+    });
+
+    return {
+      message: `User suspended for ${days} days`,
+    };
   }
 }

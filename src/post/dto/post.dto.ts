@@ -5,6 +5,8 @@ import {
   IsString,
   IsUUID,
 } from 'class-validator';
+import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { PaginatedResponseDto } from 'src/common/dto/pagination-response.dto';
 import { ReportReason, ReportStatus } from 'src/database/prisma-client/enums';
 
 // ======================================================
@@ -154,3 +156,13 @@ export interface CategoryResponse {
   name: string;
 }
 
+export interface GetPostQueryDto extends PaginationQueryDto {
+  stateId?: string;
+  topicId?: string;
+  recent?: boolean;
+  popular?: boolean;
+}
+
+export interface AdminGetPostsQueryDto extends PaginationQueryDto {
+  minReports?: number | 4; // default to 4 if not provided
+}

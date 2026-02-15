@@ -14,6 +14,8 @@ model Post {
   topic     Topics    @relation(fields: [topicId], references: [id])
   user      User      @relation(fields: [userId], references: [id])
   reports   Report[]
+
+  @@index([createdAt])
 }
 
 model State {
@@ -65,6 +67,7 @@ model Report {
   user      User         @relation(fields: [userId], references: [id])
 
   @@unique([userId, postId])
+  @@index([postId])
 }
 
 enum ReportReason {
