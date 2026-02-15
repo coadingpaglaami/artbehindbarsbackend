@@ -6,7 +6,6 @@ import {
   IsUUID,
 } from 'class-validator';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
-import { PaginatedResponseDto } from 'src/common/dto/pagination-response.dto';
 import { ReportReason, ReportStatus } from 'src/database/prisma-client/enums';
 
 // ======================================================
@@ -125,6 +124,8 @@ export interface ReportResponse {
   createdAt: Date;
 }
 
+
+
 // -------- Pagination Response (optional but useful) --------
 export interface PaginatedPostResponse {
   data: PostResponse[];
@@ -157,6 +158,7 @@ export interface CategoryResponse {
 }
 
 export interface GetPostQueryDto extends PaginationQueryDto {
+  search?: string;
   stateId?: string;
   topicId?: string;
   recent?: boolean;

@@ -28,6 +28,8 @@ export class AuctionCronService {
         status: { not: 'Ended' },
       },
     });
+    
+
 
     if (!auctionsToFinalize.length) return;
 

@@ -6,7 +6,7 @@ model Post {
   stateId   String    @db.Uuid
   createdAt DateTime  @default(now())
   imageUrl  String[]
-  videoUrl  String
+  videoUrl  String?
   topicId   String    @db.Uuid
   comments  Comment[]
   likes     Like[]

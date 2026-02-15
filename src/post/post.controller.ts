@@ -23,8 +23,11 @@ import {
 } from './dto/post.dto';
 import { Roles } from 'src/role/decorators/role.decorator';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
-import type { AdminGetPostsQueryDto, CategoryResponse, GetPostQueryDto } from './dto/post.dto';
-import { RolesGuard } from 'src/role/guard/role.guard';
+import type {
+  AdminGetPostsQueryDto,
+  CategoryResponse,
+  GetPostQueryDto,
+} from './dto/post.dto';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 import { PaginatedResponseDto } from 'src/common/dto/pagination-response.dto';
 
@@ -57,13 +60,15 @@ export class PostController {
     return this.postService.getAllPosts(query);
   }
 
-  @Get('states' )
+  @Get('states')
   getStates(@Query() query: PaginationQueryDto) {
     return this.postService.getAllStates(query);
   }
 
   @Get('categories')
-  async getCategories(@Query() query: PaginationQueryDto):Promise<PaginatedResponseDto<CategoryResponse>> {
+  async getCategories(
+    @Query() query: PaginationQueryDto,
+  ): Promise<PaginatedResponseDto<CategoryResponse>> {
     console.log('This Get Executing');
     return await this.postService.getAllCategories(query);
   }
@@ -95,6 +100,12 @@ export class PostController {
   }
 
   @UseGuards(AuthGuard('jwt'))
+  @Get(':id/comment')
+  getComments(@Param('id') postId: string) {
+    return this.postService.getComments(postId);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
   @Post(':id/report')
   report(
     @Req() req: any,
@@ -121,10 +132,50 @@ export class PostController {
     return this.postService.createState(dto);
   }
 
+  // =======================
+  // PATCH STATE (ADMIN)
+  // =======================
+  @Patch('state/:id')
+  @UseGuards(AuthGuard('jwt'))
+  @Roles(['ADMIN'])
+  updateState(@Param('id') stateId: string, @Body() dto: CreateStateDto) {
+    return this.postService.updateState(stateId, dto);
+  }
+
+  @Patch('category/:id')
+  @UseGuards(AuthGuard('jwt'))
+  @Roles(['ADMIN'])
+  updateCategory(
+    @Param('id') categoryId: string,
+    @Body() dto: CreateCategoryDto,
+  ) {
+    return this.postService.updateCategory(categoryId, dto);
+  }
+
+  @Delete('state/:id')
+  @UseGuards(AuthGuard('jwt'))
+  @Roles(['ADMIN'])
+  deleteState(@Param('id') stateId: string) {
+    return this.postService.deleteState(stateId);
+  }
+
+  @Delete('category/:id')
+  @UseGuards(AuthGuard('jwt'))
+  @Roles(['ADMIN'])
+  deleteCategory(@Param('id') categoryId: string) {
+    return this.postService.deleteCategory(categoryId);
+  }
+
+  // =======================
+  // ADMIN-ONLY
+  // =======================
+
   @UseGuards(AuthGuard('jwt'))
   @Roles(['ADMIN'])
   @Get('admin/reported-posts')
-  getReportedPosts(@Query() query:AdminGetPostsQueryDto):Promise<PaginatedResponseDto<any>> {
+  getReportedPosts(
+    @Query() query: AdminGetPostsQueryDto,
+  ): Promise<PaginatedResponseDto<any>> {
     return this.postService.getReportedPosts(query);
   }
 

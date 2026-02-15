@@ -224,6 +224,30 @@ export class PostService {
     });
   }
 
+  async getComments(postId: string) {
+    const post = await this.prisma.post.findUnique({
+      where: { id: postId },
+      select: { id: true },
+    });
+
+    if (!post) {
+      throw new NotFoundException('Post not found');
+    }
+
+    return this.prisma.comment.findMany({
+      where: { postId },
+      select: {
+        id: true,
+        content: true,
+        createdAt: true,
+        user: {
+          select: { id: true, firstName: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   // =======================
   // REPORT
   // =======================
@@ -265,10 +289,21 @@ export class PostService {
   }
 
   async getAllPosts(query: GetPostQueryDto) {
-    const { page = 1, limit = 10, stateId, topicId, recent, popular } = query;
+    const {
+      page = 1,
+      limit = 10,
+      stateId,
+      topicId,
+      recent,
+      popular,
+      search,
+    } = query;
     if (page < 1 || limit < 1) {
       throw new BadRequestException('Invalid pagination parameters');
     }
+
+    let pageNum = Number(page);
+    let limitNum = Number(limit);
 
     const where: any = {};
 
@@ -278,19 +313,24 @@ export class PostService {
     let orderBy: any = { createdAt: 'desc' };
 
     if (popular) {
-      orderBy = { likes: 'desc' }; // or likesCount
+      orderBy =  { likes: { _count: 'desc' } };
     }
 
     if (recent) {
       orderBy = { createdAt: 'desc' };
     }
 
+    if (search) {
+      where.title = { contains: search, mode: 'insensitive' };
+      where.content = { contains: search, mode: 'insensitive' };
+    }
+
     const total = await this.prisma.post.count({ where });
 
     const posts = await this.prisma.post.findMany({
       where,
-      skip: (page - 1) * limit,
-      take: limit,
+      skip: (pageNum - 1) * limitNum,
+      take: limitNum,
       orderBy,
       select: this.postSelect(),
     });
@@ -299,9 +339,9 @@ export class PostService {
       data: posts,
       meta: {
         total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
+        page: pageNum,
+        limit: limitNum,
+        totalPages: Math.ceil(total / limitNum),
       },
     } as PaginatedResponseDto<PostResponse>;
   }
@@ -360,6 +400,60 @@ export class PostService {
         totalPages: Math.ceil(total / limit),
       },
     } as PaginatedResponseDto<CategoryResponse>;
+  }
+
+  async updateCategory(categoryId: string, dto: CreateCategoryDto) {
+    const existing = await this.prisma.topics.findUnique({
+      where: { id: categoryId },
+      select: { id: true },
+    });
+    if (!existing) {
+      throw new NotFoundException('Category not found');
+    }
+    return this.prisma.topics.update({
+      where: { id: categoryId },
+      data: { name: dto.name },
+    });
+  }
+
+  async deleteCategory(categoryId: string) {
+    const existing = await this.prisma.topics.findUnique({
+      where: { id: categoryId },
+      select: { id: true },
+    });
+    if (!existing) {
+      throw new NotFoundException('Category not found');
+    }
+    return this.prisma.topics.delete({
+      where: { id: categoryId },
+    });
+  }
+
+  async deleteState(stateId: string) {
+    const existing = await this.prisma.state.findUnique({
+      where: { id: stateId },
+      select: { id: true },
+    });
+    if (!existing) {
+      throw new NotFoundException('State not found');
+    }
+    return this.prisma.state.delete({
+      where: { id: stateId },
+    });
+  }
+
+  async updateState(stateId: string, dto: CreateStateDto) {
+    const existing = await this.prisma.state.findUnique({
+      where: { id: stateId },
+      select: { id: true },
+    });
+    if (!existing) {
+      throw new NotFoundException('State not found');
+    }
+    return this.prisma.state.update({
+      where: { id: stateId },
+      data: { name: dto.name },
+    });
   }
 
   async getAllStates(

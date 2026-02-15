@@ -437,10 +437,19 @@ export class AuctionService {
       orderBy: { bidPrice: 'desc' },
     });
 
+
     const auction = await this.prisma.auction.findUnique({
       where: { id: auctionId },
     });
     if (!topBid || !auction || !auction.artworkId) return;
+
+    const order = await this.prisma.order.findFirst({
+      where: { auctionId },
+    });
+    if (order?.status === 'COMPLETED') {
+      console.log(`Auction ${auctionId} already paid. Skipping notification.`);
+      return;
+    }
 
     const due = new Date();
     due.setHours(due.getHours() + 48);
