@@ -18,7 +18,6 @@ export class NotificationController {
   @Get()
   async getMyNotifications(@Req() req: any) {
     const userId = req.user.sub; // Assuming user ID is stored in req.user.sub after authentication
-    console.log('Fetching notifications for user:', userId);
     return this.notificationService.getMyNotifications(userId);
   }
 

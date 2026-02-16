@@ -138,6 +138,36 @@ export class PostService {
     return post;
   }
 
+  async getUserAllPost(
+    userId: string,
+    query: GetPostQueryDto,
+  ): Promise<PaginatedResponseDto<PostResponse>> {
+    const { page = 1, limit = 10 } = query;
+    if (page < 1 || limit < 1) {
+      throw new BadRequestException('Invalid pagination parameters');
+    }
+    const limitNum = Number(limit);
+
+    const posts = await this.prisma.post.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      select: this.postSelect(),
+      skip: (page - 1) * limitNum,
+      take: limitNum,
+    });
+    return {
+      data: posts as PostResponse[],
+      meta: {
+        total: await this.prisma.post.count({ where: { userId } }),
+        page,
+        limit,
+        totalPages: Math.ceil(
+          (await this.prisma.post.count({ where: { userId } })) / limitNum,
+        ),
+      },
+    };
+  }
+
   // =======================
   // POSTS (AUTH)
   // =======================
@@ -313,7 +343,7 @@ export class PostService {
     let orderBy: any = { createdAt: 'desc' };
 
     if (popular) {
-      orderBy =  { likes: { _count: 'desc' } };
+      orderBy = { likes: { _count: 'desc' } };
     }
 
     if (recent) {

@@ -64,11 +64,7 @@ export class MailService {
       html,
     });
   }
-  async sendAdminReplyEmail(
-    to: string,
-    name: string,
-    reply: string,
-  ) {
+  async sendAdminReplyEmail(to: string, name: string, reply: string) {
     await this.transporter.sendMail({
       from: `"Support Team" <${process.env.MAIL_USER}>`,
       to,
@@ -84,6 +80,64 @@ export class MailService {
           <p>Best Regards,<br/>Support Team</p>
         </div>
       `,
+    });
+  }
+
+  // 🔄 Email Change – Verify OLD Email
+  async sendOldEmailVerifyOtp(to: string, otp: string) {
+    const html = `
+    <div style="font-family: Arial, sans-serif; padding:20px;">
+      <h2>Email Change Request</h2>
+      <p>Hello,</p>
+      <p>You requested to change your email address.</p>
+
+      <p>Please verify your CURRENT email using this OTP:</p>
+
+      <h1 style="color:#2d89ef;">${otp}</h1>
+
+      <p>This code expires in <b>10 minutes</b>.</p>
+
+      <hr/>
+      <p style="font-size:12px;color:#666;">
+        If you didn’t request this, secure your account immediately.
+      </p>
+    </div>
+  `;
+
+    await this.transporter.sendMail({
+      from: `Art Behind Bars <${process.env.MAIL_USER}>`,
+      to,
+      subject: 'Verify Your Current Email',
+      html,
+    });
+  }
+
+  // 🔄 Email Change – Verify NEW Email
+  async sendNewEmailVerifyOtp(to: string, otp: string) {
+    const html = `
+    <div style="font-family: Arial, sans-serif; padding:20px;">
+      <h2>Confirm Your New Email</h2>
+
+      <p>Hello,</p>
+
+      <p>Please confirm your NEW email address using this OTP:</p>
+
+      <h1 style="color:#e63946;">${otp}</h1>
+
+      <p>This code expires in <b>10 minutes</b>.</p>
+
+      <hr/>
+      <p style="font-size:12px;color:#666;">
+        If this wasn’t you, ignore this email.
+      </p>
+    </div>
+  `;
+
+    await this.transporter.sendMail({
+      from: `Art Behind Bars <${process.env.MAIL_USER}>`,
+      to,
+      subject: 'Verify Your New Email',
+      html,
     });
   }
 }

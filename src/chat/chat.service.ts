@@ -6,6 +6,7 @@ import {
 import { SocketService } from '../socket/socket.service';
 import { PrismaService } from 'src/database/prisma.service';
 
+
 @Injectable()
 export class ChatService {
   constructor(

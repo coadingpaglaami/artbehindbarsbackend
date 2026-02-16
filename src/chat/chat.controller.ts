@@ -6,9 +6,11 @@ import {
   Post,
   UseGuards,
   Req,
+  Query,
 } from '@nestjs/common';
 import { ChatService } from './chat.service';
 import { AuthGuard } from '@nestjs/passport';
+import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 
 @Controller('chat')
 @UseGuards(AuthGuard('jwt'))
@@ -17,26 +19,26 @@ export class ChatController {
 
   // Create or get chat with another user
   @Post('with/:userId')
-  async getOrCreateChat(@Req() req:any, @Param('userId') userId: string) {
+  async getOrCreateChat(@Req() req: any, @Param('userId') userId: string) {
     return this.chatService.getOrCreateChat(req.user.sub, userId);
   }
 
   // Get all chats for logged-in user
   @Get()
-  async getUserChats(@Req() req:any) {
-    return this.chatService.getUserChats(req.user.sub);
+  getMyChats(@Req() req: any) {
+    return this.chatService.getUserChats(req.user.id);
   }
 
   // Get messages of a chat
   @Get(':chatId/messages')
-  async getMessages(@Req() req:any, @Param('chatId') chatId: string) {
+  async getMessages(@Req() req: any, @Param('chatId') chatId: string) {
     return this.chatService.getMessages(req.user.sub, chatId);
   }
 
-  // Send message
+  // Send message z
   @Post(':chatId/message')
   async sendMessage(
-    @Req() req:any,
+    @Req() req: any,
     @Param('chatId') chatId: string,
     @Body('content') content: string,
   ) {
@@ -45,7 +47,7 @@ export class ChatController {
 
   // Mark all unseen messages as seen
   @Post(':chatId/seen')
-  async markAsSeen(@Req() req:any, @Param('chatId') chatId: string) {
+  async markAsSeen(@Req() req: any, @Param('chatId') chatId: string) {
     return this.chatService.markAsSeen(req.user.sub, chatId);
   }
 }

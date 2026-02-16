@@ -448,7 +448,7 @@ export class AuctionService {
     });
     if (order?.status === 'COMPLETED') {
       console.log(`Auction ${auctionId} already paid. Skipping notification.`);
-      return;
+      throw new BadRequestException('Auction already completed');
     }
 
     const due = new Date();

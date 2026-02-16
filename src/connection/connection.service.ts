@@ -204,4 +204,33 @@ export class ConnectionService {
       },
     };
   }
+
+  async getConnectionStatus(myId: string, otherId: string) {
+    const connection = await this.prisma.connection.findFirst({
+      where: {
+        OR: [
+          {
+            requesterId: myId,
+            receiverId: otherId,
+          },
+          {
+            requesterId: otherId,
+            receiverId: myId,
+          },
+        ],
+      },
+    });
+
+    if (!connection) {
+      return {
+        status: 'NONE',
+        direction: null,
+      };
+    }
+
+    return {
+      status: connection.status,
+      direction: connection.requesterId === myId ? 'OUTGOING' : 'INCOMING',
+    };
+  }
 }

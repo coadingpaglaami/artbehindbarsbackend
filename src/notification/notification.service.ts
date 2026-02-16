@@ -22,7 +22,6 @@ export class NotificationService {
       where: { userId },
       orderBy: { createdAt: 'desc' },
     });
-    console.log('Notifications fetched for user:', userId, result);
     return result;
   }
 

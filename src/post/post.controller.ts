@@ -78,6 +78,12 @@ export class PostController {
     return this.postService.getPostById(postId);
   }
 
+  @Get(':id/user')
+  @UseGuards(AuthGuard('jwt'))
+  getPostDetails(@Param('id')  userId: string, @Query() query: GetPostQueryDto) {
+    return this.postService.getUserAllPost(userId, query);
+  }
+
   // =======================
   // AUTHENTICATED
   // =======================

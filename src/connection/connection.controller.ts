@@ -55,4 +55,9 @@ export class ConnectionController {
   getMyConnections(@Req() req: any, @Query() query: PaginationQueryDto) {
     return this.service.getMyConnections(req.user.sub, query);
   }
+
+  @Get(':id/status')
+  getStatus(@Req() req: any, @Param('id') userId: string) {
+    return this.service.getConnectionStatus(req.user.sub, userId);
+  }
 }
