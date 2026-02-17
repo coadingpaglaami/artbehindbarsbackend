@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 import { PaginatedResponseDto } from 'src/common/dto/pagination-response.dto';
-import { ConnectionStatus } from 'src/database/prisma-client/enums';
+import { ConnectionStatus, NotificationType } from 'src/database/prisma-client/enums';
 import { PrismaService } from 'src/database/prisma.service';
 import { SocketService } from 'src/socket/socket.service';
 
@@ -18,7 +18,8 @@ export class ConnectionService {
   ) {}
 
   // SEND REQUEST
-  async sendRequest(userId: string, receiverId: string) {
+  async sendRequest(req: any, receiverId: string) {
+    const userId = this.getUserId(req);
     if (userId === receiverId)
       throw new BadRequestException('Cannot connect with yourself');
 
@@ -44,6 +45,16 @@ export class ConnectionService {
     this.socketService.emitToUser(receiverId, 'connection-request', {
       connectionId: connection.id,
       fromUserId: userId,
+      payload: `You have a new connection request from ${req.user.firstName} ${req.user.lastName}`,
+    });
+    this.prisma.notification.create({
+      data: {
+        userId: receiverId,
+        type: NotificationType.CONNECTION_REQUEST,
+        title: 'New Connection Request',
+        message: `You have a new connection request from ${req.user.firstName} ${req.user.lastName}`,
+
+      },
     });
 
     return {
@@ -53,7 +64,8 @@ export class ConnectionService {
   }
 
   // ACCEPT
-  async acceptRequest(userId: string, connectionId: string) {
+  async acceptRequest(req: any, connectionId: string) {
+    const userId = this.getUserId(req);
     const connection = await this.prisma.connection.findUnique({
       where: { id: connectionId },
     });
@@ -73,8 +85,17 @@ export class ConnectionService {
       {
         connectionId,
         byUserId: userId,
+        payload: `Your connection request has been accepted by ${req.user.firstName} ${req.user.lastName}`,
       },
     );
+    this.prisma.notification.create({
+      data: {
+        userId: connection.requesterId,
+        type: NotificationType.CONNECTION_ACCEPTED,
+        title: 'Connection Request Accepted',
+        message: `Your connection request has been accepted by ${req.user.firstName} ${req.user.lastName}`,
+      },
+    });
 
     return {
       message: 'Connection accepted',
@@ -83,7 +104,8 @@ export class ConnectionService {
   }
 
   // REJECT
-  async rejectRequest(userId: string, connectionId: string) {
+  async rejectRequest(req: any, connectionId: string) {
+    const userId = this.getUserId(req);
     const connection = await this.prisma.connection.findUnique({
       where: { id: connectionId },
     });
@@ -112,7 +134,8 @@ export class ConnectionService {
   }
 
   // DISCONNECT
-  async disconnect(userId: string, connectionId: string) {
+  async disconnect(req: any, connectionId: string) {
+    const userId = this.getUserId(req);
     const connection = await this.prisma.connection.findUnique({
       where: { id: connectionId },
     });
@@ -139,7 +162,8 @@ export class ConnectionService {
   }
 
   // INCOMING REQUESTS
-  async getIncomingRequests(userId: string, dto: PaginationQueryDto) {
+  async getIncomingRequests(req: any, dto: PaginationQueryDto) {
+    const userId = this.getUserId(req);
     const { page = 1, limit = 10 } = dto;
     const skip = (page - 1) * limit;
 
@@ -163,7 +187,8 @@ export class ConnectionService {
   }
 
   // MY REQUESTS
-  async getMyRequests(userId: string, dto: PaginationQueryDto) {
+  async getMyRequests(req: any, dto: PaginationQueryDto) {
+    const userId = this.getUserId(req);
     const { page = 1, limit = 10 } = dto;
     const skip = (page - 1) * limit;
 
@@ -195,123 +220,124 @@ export class ConnectionService {
   }
 
   // MY CONNECTIONS
-async getMyConnections(userId: string, dto: PaginationQueryDto) {
-  const { page = 1, limit = 10 } = dto;
-  const skip = (page - 1) * limit;
+  async getMyConnections(req: any, dto: PaginationQueryDto) {
+    const userId = this.getUserId(req);
+    const { page = 1, limit = 10 } = dto;
+    const skip = (page - 1) * limit;
 
-  const where = {
-    status: ConnectionStatus.ACCEPTED,
-    OR: [{ requesterId: userId }, { receiverId: userId }],
-  };
+    const where = {
+      status: ConnectionStatus.ACCEPTED,
+      OR: [{ requesterId: userId }, { receiverId: userId }],
+    };
 
-  // 1️⃣ Get connections with users + their connection counts
-  const [total, connections] = await Promise.all([
-    this.prisma.connection.count({ where }),
-    this.prisma.connection.findMany({
-      where,
-      skip,
-      take: limit,
-      include: {
-        requester: {
-          include: {
-            _count: {
-              select: {
-                receivedConnections: {
-                  where: { status: ConnectionStatus.ACCEPTED },
+    // 1️⃣ Get connections with users + their connection counts
+    const [total, connections] = await Promise.all([
+      this.prisma.connection.count({ where }),
+      this.prisma.connection.findMany({
+        where,
+        skip,
+        take: limit,
+        include: {
+          requester: {
+            include: {
+              _count: {
+                select: {
+                  receivedConnections: {
+                    where: { status: ConnectionStatus.ACCEPTED },
+                  },
+                  sentConnections: {
+                    where: { status: ConnectionStatus.ACCEPTED },
+                  },
                 },
-                sentConnections: {
-                  where: { status: ConnectionStatus.ACCEPTED },
+              },
+            },
+          },
+          receiver: {
+            include: {
+              _count: {
+                select: {
+                  receivedConnections: {
+                    where: { status: ConnectionStatus.ACCEPTED },
+                  },
+                  sentConnections: {
+                    where: { status: ConnectionStatus.ACCEPTED },
+                  },
                 },
               },
             },
           },
         },
-        receiver: {
-          include: {
-            _count: {
-              select: {
-                receivedConnections: {
-                  where: { status: ConnectionStatus.ACCEPTED },
-                },
-                sentConnections: {
-                  where: { status: ConnectionStatus.ACCEPTED },
-                },
+      }),
+    ]);
+
+    // 2️⃣ Extract other user IDs
+    const otherUserIds = connections.map((conn) =>
+      conn.requesterId === userId ? conn.receiverId : conn.requesterId,
+    );
+
+    // 3️⃣ Fetch chats that contain me AND any of those users
+    const chats = await this.prisma.chat.findMany({
+      where: {
+        AND: [
+          { participants: { some: { userId } } },
+          {
+            participants: {
+              some: {
+                userId: { in: otherUserIds },
               },
             },
           },
-        },
+        ],
       },
-    }),
-  ]);
+      include: {
+        participants: true,
+      },
+    });
 
-  // 2️⃣ Extract other user IDs
-  const otherUserIds = connections.map((conn) =>
-    conn.requesterId === userId ? conn.receiverId : conn.requesterId
-  );
+    // 4️⃣ Build chat map: otherUserId -> chatId
+    const chatMap = new Map<string, string>();
 
-  // 3️⃣ Fetch chats that contain me AND any of those users
-  const chats = await this.prisma.chat.findMany({
-    where: {
-      AND: [
-        { participants: { some: { userId } } },
-        {
-          participants: {
-            some: {
-              userId: { in: otherUserIds },
-            },
-          },
-        },
-      ],
-    },
-    include: {
-      participants: true,
-    },
-  });
-
-  // 4️⃣ Build chat map: otherUserId -> chatId
-  const chatMap = new Map<string, string>();
-
-  chats.forEach((chat) => {
-    if (chat.participants.length === 2) {
-      const otherParticipant = chat.participants.find(
-        (p) => p.userId !== userId
-      );
-      if (otherParticipant) {
-        chatMap.set(otherParticipant.userId, chat.id);
+    chats.forEach((chat) => {
+      if (chat.participants.length === 2) {
+        const otherParticipant = chat.participants.find(
+          (p) => p.userId !== userId,
+        );
+        if (otherParticipant) {
+          chatMap.set(otherParticipant.userId, chat.id);
+        }
       }
-    }
-  });
+    });
 
-  // 5️⃣ Format final response
-  const formatted = connections.map((conn) => {
-    const otherUser =
-      conn.requesterId === userId ? conn.receiver : conn.requester;
+    // 5️⃣ Format final response
+    const formatted = connections.map((conn) => {
+      const otherUser =
+        conn.requesterId === userId ? conn.receiver : conn.requester;
 
-    const totalConnections =
-      otherUser._count.receivedConnections +
-      otherUser._count.sentConnections;
+      const connectionsCount =
+        otherUser._count.receivedConnections + otherUser._count.sentConnections;
+
+      return {
+        connectionId: conn.id,
+        chatId: chatMap.get(otherUser.id) ?? null,
+        user: {
+          id: otherUser.id,
+          firstName: otherUser.firstName,
+          lastName: otherUser.lastName,
+          email: otherUser.email,
+          profilePictureUrl: otherUser.profilePictureUrl,
+          connectionsCount,
+        },
+      };
+    });
 
     return {
-      connectionId: conn.id,
-      chatId: chatMap.get(otherUser.id) ?? null,
-      id: otherUser.id,
-      firstName: otherUser.firstName,
-      lastName: otherUser.lastName,
-      email: otherUser.email,
-      profilePictureUrl: otherUser.profilePictureUrl,
-      totalConnections,
+      data: formatted,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
     };
-  });
-
-  return {
-    data: formatted,
-    total,
-    page,
-    limit,
-    totalPages: Math.ceil(total / limit),
-  };
-}
-
+  }
 
   private paginate<T>(
     data: T[],
@@ -330,7 +356,8 @@ async getMyConnections(userId: string, dto: PaginationQueryDto) {
     };
   }
 
-  async getConnectionStatus(myId: string, otherId: string) {
+  async getConnectionStatus(req:any, otherId: string) {
+    const myId = this.getUserId(req);
     const connection = await this.prisma.connection.findFirst({
       where: {
         OR: [
@@ -358,5 +385,8 @@ async getMyConnections(userId: string, dto: PaginationQueryDto) {
       status: connection.status,
       direction: connection.requesterId === myId ? 'OUTGOING' : 'INCOMING',
     };
+  }
+  private getUserId(req: any): string {
+    return req.user?.sub;
   }
 }

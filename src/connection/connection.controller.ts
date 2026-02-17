@@ -23,47 +23,47 @@ export class ConnectionController {
   // Send connection request
   @Post()
   sendRequest(@Req() req: any, @Body() dto: CreateConnectionDto) {
-    return this.service.sendRequest(req.user.sub, dto.receiverId);
+    return this.service.sendRequest(req, dto.receiverId);
   }
 
   // Accept request
   @Patch(':id/accept')
   accept(@Req() req: any, @Param('id') connectionId: string) {
-    return this.service.acceptRequest(req.user.sub, connectionId);
+    return this.service.acceptRequest(req, connectionId);
   }
 
   // Reject request
   @Patch(':id/reject')
   reject(@Req() req: any, @Param('id') connectionId: string) {
-    return this.service.rejectRequest(req.user.sub, connectionId);
+    return this.service.rejectRequest(req, connectionId);
   }
 
   // Disconnect
   @Delete(':id')
   disconnect(@Req() req: any, @Param('id') connectionId: string) {
-    return this.service.disconnect(req.user.sub, connectionId);
+    return this.service.disconnect(req, connectionId);
   }
 
   // Incoming requests
   @Get('requests')
   getRequests(@Req() req: any, @Query() query: PaginationQueryDto) {
-    return this.service.getIncomingRequests(req.user.sub, query);
+    return this.service.getIncomingRequests(req, query);
   }
 
   // My Requests
   @Get('my-requests')
   getMyRequests(@Req() req: any, @Query() query: PaginationQueryDto) {
-    return this.service.getMyRequests(req.user.sub, query);
+    return this.service.getMyRequests(req, query);
   }
 
   // My connections
   @Get()
   getMyConnections(@Req() req: any, @Query() query: PaginationQueryDto) {
-    return this.service.getMyConnections(req.user.sub, query);
+    return this.service.getMyConnections(req, query);
   }
 
   @Get(':id/status')
   getStatus(@Req() req: any, @Param('id') userId: string) {
-    return this.service.getConnectionStatus(req.user.sub, userId);
+    return this.service.getConnectionStatus(req, userId);
   }
 }

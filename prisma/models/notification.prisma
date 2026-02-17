@@ -16,4 +16,7 @@ enum NotificationType {
   COMMENT // Comment on your post/artwork
   ADMIN // Admin message, warnings
   INFO // General info
+  CONNECTION_REQUEST // New connection request
+  CONNECTION_ACCEPTED // Connection request accepted
+  WARNING // Warning about content or behavior
 }
