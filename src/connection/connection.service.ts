@@ -162,31 +162,156 @@ export class ConnectionService {
     return this.paginate(data, total, page, limit);
   }
 
-  // MY CONNECTIONS
-  async getMyConnections(userId: string, dto: PaginationQueryDto) {
+  // MY REQUESTS
+  async getMyRequests(userId: string, dto: PaginationQueryDto) {
     const { page = 1, limit = 10 } = dto;
     const skip = (page - 1) * limit;
 
-    const where = {
-      status: ConnectionStatus.ACCEPTED,
-      OR: [{ requesterId: userId }, { receiverId: userId }],
-    };
-
-    const [total, data] = await Promise.all([
-      this.prisma.connection.count({ where }),
+    const [total, connections] = await Promise.all([
+      this.prisma.connection.count({
+        where: { requesterId: userId, status: 'PENDING' },
+      }),
       this.prisma.connection.findMany({
-        where,
+        where: { requesterId: userId, status: 'PENDING' },
         include: {
-          requester: true,
-          receiver: true,
+          receiver: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              profilePictureUrl: true,
+            },
+          },
         },
         skip,
         take: limit,
       }),
     ]);
 
+    const data = connections.map((conn) => conn.receiver);
+
     return this.paginate(data, total, page, limit);
   }
+
+  // MY CONNECTIONS
+async getMyConnections(userId: string, dto: PaginationQueryDto) {
+  const { page = 1, limit = 10 } = dto;
+  const skip = (page - 1) * limit;
+
+  const where = {
+    status: ConnectionStatus.ACCEPTED,
+    OR: [{ requesterId: userId }, { receiverId: userId }],
+  };
+
+  // 1️⃣ Get connections with users + their connection counts
+  const [total, connections] = await Promise.all([
+    this.prisma.connection.count({ where }),
+    this.prisma.connection.findMany({
+      where,
+      skip,
+      take: limit,
+      include: {
+        requester: {
+          include: {
+            _count: {
+              select: {
+                receivedConnections: {
+                  where: { status: ConnectionStatus.ACCEPTED },
+                },
+                sentConnections: {
+                  where: { status: ConnectionStatus.ACCEPTED },
+                },
+              },
+            },
+          },
+        },
+        receiver: {
+          include: {
+            _count: {
+              select: {
+                receivedConnections: {
+                  where: { status: ConnectionStatus.ACCEPTED },
+                },
+                sentConnections: {
+                  where: { status: ConnectionStatus.ACCEPTED },
+                },
+              },
+            },
+          },
+        },
+      },
+    }),
+  ]);
+
+  // 2️⃣ Extract other user IDs
+  const otherUserIds = connections.map((conn) =>
+    conn.requesterId === userId ? conn.receiverId : conn.requesterId
+  );
+
+  // 3️⃣ Fetch chats that contain me AND any of those users
+  const chats = await this.prisma.chat.findMany({
+    where: {
+      AND: [
+        { participants: { some: { userId } } },
+        {
+          participants: {
+            some: {
+              userId: { in: otherUserIds },
+            },
+          },
+        },
+      ],
+    },
+    include: {
+      participants: true,
+    },
+  });
+
+  // 4️⃣ Build chat map: otherUserId -> chatId
+  const chatMap = new Map<string, string>();
+
+  chats.forEach((chat) => {
+    if (chat.participants.length === 2) {
+      const otherParticipant = chat.participants.find(
+        (p) => p.userId !== userId
+      );
+      if (otherParticipant) {
+        chatMap.set(otherParticipant.userId, chat.id);
+      }
+    }
+  });
+
+  // 5️⃣ Format final response
+  const formatted = connections.map((conn) => {
+    const otherUser =
+      conn.requesterId === userId ? conn.receiver : conn.requester;
+
+    const totalConnections =
+      otherUser._count.receivedConnections +
+      otherUser._count.sentConnections;
+
+    return {
+      connectionId: conn.id,
+      chatId: chatMap.get(otherUser.id) ?? null,
+      id: otherUser.id,
+      firstName: otherUser.firstName,
+      lastName: otherUser.lastName,
+      email: otherUser.email,
+      profilePictureUrl: otherUser.profilePictureUrl,
+      totalConnections,
+    };
+  });
+
+  return {
+    data: formatted,
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  };
+}
+
 
   private paginate<T>(
     data: T[],
@@ -229,6 +354,7 @@ export class ConnectionService {
     }
 
     return {
+      connectionId: connection.id,
       status: connection.status,
       direction: connection.requesterId === myId ? 'OUTGOING' : 'INCOMING',
     };

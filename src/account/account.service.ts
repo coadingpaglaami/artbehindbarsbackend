@@ -8,6 +8,8 @@ import { UploadService } from 'src/upload/upload.service';
 import * as bcrypt from 'bcrypt';
 import { randomInt } from 'crypto';
 import { MailService } from 'src/mail/mail.service';
+import { PaginatedResponseDto } from 'src/common/dto/pagination-response.dto';
+import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 
 @Injectable()
 export class AccountService {
@@ -211,7 +213,7 @@ export class AccountService {
 ===================================================== */
 
   async getOtherUserProfile(userId: string, myUserId?: string) {
-    console.log(myUserId)
+    console.log(myUserId);
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: {
@@ -284,19 +286,49 @@ export class AccountService {
     if (!orders) throw new NotFoundException('No orders found');
     return orders;
   }
-  async getMyBlockedUsers(userId: string) {
+  async getMyBlockedUsers(
+    userId: string,
+    query: PaginationQueryDto,
+  ): Promise<
+    PaginatedResponseDto<{
+      id: string;
+      firstName: string;
+      lastName: string;
+      profilePictureUrl?: string;
+    }>
+  > {
+    let {page = 1, limit = 10} = query;
+    page = Number(page) || 1;
+    limit = Number(limit) || 10;
     const blocks = await this.prisma.userBlock.findMany({
       where: { blockerId: userId },
+      take: limit,
+      skip: (page - 1) * limit,
       include: {
         blocked: {
           select: {
             id: true,
             firstName: true,
             lastName: true,
+            profilePictureUrl: true,
+            
           },
         },
       },
     });
-    return blocks.map((b) => b.blocked);
+    return {
+      data: blocks.map((b) => b.blocked) as {
+        id: string;
+        firstName: string;
+        lastName: string;
+        profilePictureUrl?: string;
+      }[],
+      meta: {
+        total: blocks.length,
+        page,
+        limit,
+        totalPages: Math.ceil(blocks.length / limit),
+      },
+    };
   }
 }

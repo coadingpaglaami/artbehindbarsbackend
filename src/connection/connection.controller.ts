@@ -50,6 +50,12 @@ export class ConnectionController {
     return this.service.getIncomingRequests(req.user.sub, query);
   }
 
+  // My Requests
+  @Get('my-requests')
+  getMyRequests(@Req() req: any, @Query() query: PaginationQueryDto) {
+    return this.service.getMyRequests(req.user.sub, query);
+  }
+
   // My connections
   @Get()
   getMyConnections(@Req() req: any, @Query() query: PaginationQueryDto) {

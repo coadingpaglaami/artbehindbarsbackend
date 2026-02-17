@@ -5,7 +5,9 @@ import {
 } from '@nestjs/common';
 import { SocketService } from '../socket/socket.service';
 import { PrismaService } from 'src/database/prisma.service';
-
+import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { PaginatedPostResponse } from 'src/post/dto/post.dto';
+import { PaginatedResponseDto } from 'src/common/dto/pagination-response.dto';
 
 @Injectable()
 export class ChatService {
@@ -163,7 +165,24 @@ export class ChatService {
   }
 
   // Get all chats of a user (with last message + unread count)
-  async getUserChats(userId: string) {
+  async getUserChats(
+    userId: string,
+    pagination: PaginationQueryDto,
+  ): Promise<PaginatedResponseDto<any>> {
+    const { page = 1, limit = 10 } = pagination;
+
+    const skip = (page - 1) * limit;
+
+    // 1️⃣ Get total count (for meta)
+    const total = await this.prisma.chat.count({
+      where: {
+        participants: {
+          some: { userId },
+        },
+      },
+    });
+
+    // 2️⃣ Get paginated chats
     const chats = await this.prisma.chat.findMany({
       where: {
         participants: {
@@ -184,8 +203,11 @@ export class ChatService {
         },
       },
       orderBy: { updatedAt: 'desc' },
+      skip,
+      take: limit,
     });
 
+    // 3️⃣ Add unread count per chat
     const enrichedChats = await Promise.all(
       chats.map(async (chat) => {
         const unreadCount = await this.prisma.messageStatus.count({
@@ -198,13 +220,29 @@ export class ChatService {
           },
         });
 
+        // ✅ find the other participant
+        const otherParticipant = chat.participants.find(
+          (p) => p.user.id !== userId,
+        );
+
+        const otherUser = otherParticipant?.user || null;
+
         return {
           ...chat,
+          otherUser, // 👈 ADD HERE
           unreadCount,
         };
       }),
     );
 
-    return enrichedChats;
+    return {
+      data: enrichedChats,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 }

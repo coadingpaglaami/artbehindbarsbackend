@@ -8,6 +8,7 @@ import {
   UseInterceptors,
   UploadedFiles,
   Param,
+  Query,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
@@ -18,6 +19,7 @@ import {
   UpdateProfileDto,
   VerifyEmailChangeDto,
 } from './dto/account.dto';
+import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 
 @Controller('account')
 @UseGuards(AuthGuard('jwt'))
@@ -60,7 +62,7 @@ export class AccountController {
 
   // ================= VERIFY OLD EMAIL OTP =================
   @Patch('email/verify-old')
-  verifyOldEmail(@Req() req, @Body() dto: VerifyEmailChangeDto) {
+  verifyOldEmail(@Req() req:any, @Body() dto: VerifyEmailChangeDto) {
     return this.accountService.verifyOldEmail(req.user.sub, dto.otp);
   }
 
@@ -81,8 +83,8 @@ export class AccountController {
     return this.accountService.getOtherUserProfile(userId,req?.user?.sub);
   }
   @Get('my-blocked-users')
-  async getMyBlockedUsers(@Req() req) {
-    return this.accountService.getMyBlockedUsers(req.user.sub);
+  async getMyBlockedUsers(@Req() req: any, @Query() query: PaginationQueryDto) {
+    return this.accountService.getMyBlockedUsers(req.user.sub, query);
   }
   @Get('mybought-artworks')
   async getMyBoughtArtworks(@Req() req) {

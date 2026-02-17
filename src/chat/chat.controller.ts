@@ -25,8 +25,8 @@ export class ChatController {
 
   // Get all chats for logged-in user
   @Get()
-  getMyChats(@Req() req: any) {
-    return this.chatService.getUserChats(req.user.id);
+  getMyChats(@Req() req: any,@Query() pagination: PaginationQueryDto) {
+    return this.chatService.getUserChats(req.user.sub,pagination);
   }
 
   // Get messages of a chat
