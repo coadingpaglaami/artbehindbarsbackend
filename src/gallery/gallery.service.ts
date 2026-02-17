@@ -506,7 +506,6 @@ export class GalleryService {
       data: {
         artistId,
         senderUserId: userId,
-        subject: dto.subject,
         message: dto.message,
       },
       select: {

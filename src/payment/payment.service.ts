@@ -191,4 +191,32 @@ export class PaymentService {
     });
     return this.serializeBigInt(order);
   }
+
+  async getSquarePaymentById(paymentId: string) {
+    try {
+      const response = await this.client.payments.get({
+        paymentId: paymentId,
+      });
+
+      if (!response?.payment) {
+        throw new NotFoundException('Square payment not found');
+      }
+
+      return this.serializeBigInt({
+        id: response.payment.id,
+        status: response.payment.status,
+        card: response.payment.cardDetails?.card,
+      });
+    } catch (error) {
+      console.error('Square fetch error:', error);
+
+      if (error instanceof SquareError) {
+        throw new InternalServerErrorException(
+          error.errors?.[0]?.detail || 'Square API error',
+        );
+      }
+
+      throw new InternalServerErrorException('Failed to fetch payment');
+    }
+  }
 }

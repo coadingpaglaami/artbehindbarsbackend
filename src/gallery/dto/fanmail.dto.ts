@@ -3,10 +3,6 @@ import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 import { FanMailStatus } from 'src/database/prisma-client/enums';
 
 export class CreateFanMailDto {
-  @IsOptional()
-  @IsString()
-  subject?: string;
-
   @IsString()
   message: string;
 }

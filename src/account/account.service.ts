@@ -10,6 +10,7 @@ import { randomInt } from 'crypto';
 import { MailService } from 'src/mail/mail.service';
 import { PaginatedResponseDto } from 'src/common/dto/pagination-response.dto';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { PaymentService } from 'src/payment/payment.service';
 
 @Injectable()
 export class AccountService {
@@ -17,6 +18,7 @@ export class AccountService {
     private prisma: PrismaService,
     private upload: UploadService,
     private mail: MailService,
+    private paymentService: PaymentService,
   ) {}
 
   // ========= GET PROFILE =========
@@ -286,6 +288,23 @@ export class AccountService {
     if (!orders) throw new NotFoundException('No orders found');
     return orders;
   }
+
+  async getMyBillingHistory(userId: string) {
+    const orders = await this.prisma.order.findMany({
+      where: { buyerId: userId },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (!orders || orders.length === 0) throw new NotFoundException('No orders found');
+    const billingHistory = await this.paymentService.getSquarePaymentById(orders[0].squarePaymentId);
+    return {
+      data: billingHistory,
+      orders:{
+        id: orders[0].id,
+        shipping:orders[0].shippingAddress,
+        name: orders[0].shippingFullName,
+      }
+    };
+  }
   async getMyBlockedUsers(
     userId: string,
     query: PaginationQueryDto,
@@ -297,7 +316,7 @@ export class AccountService {
       profilePictureUrl?: string;
     }>
   > {
-    let {page = 1, limit = 10} = query;
+    let { page = 1, limit = 10 } = query;
     page = Number(page) || 1;
     limit = Number(limit) || 10;
     const blocks = await this.prisma.userBlock.findMany({
@@ -311,7 +330,6 @@ export class AccountService {
             firstName: true,
             lastName: true,
             profilePictureUrl: true,
-            
           },
         },
       },

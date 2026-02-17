@@ -6,7 +6,10 @@ import {
 } from '@nestjs/common';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 import { PaginatedResponseDto } from 'src/common/dto/pagination-response.dto';
-import { ConnectionStatus, NotificationType } from 'src/database/prisma-client/enums';
+import {
+  ConnectionStatus,
+  NotificationType,
+} from 'src/database/prisma-client/enums';
 import { PrismaService } from 'src/database/prisma.service';
 import { SocketService } from 'src/socket/socket.service';
 
@@ -16,6 +19,13 @@ export class ConnectionService {
     private prisma: PrismaService,
     private socketService: SocketService,
   ) {}
+
+  private getUserInfo(userId: string) {
+    return this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { firstName: true, lastName: true },
+    });
+  }
 
   // SEND REQUEST
   async sendRequest(req: any, receiverId: string) {
@@ -41,26 +51,24 @@ export class ConnectionService {
       },
     });
 
-    const receiver = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { firstName: true, lastName: true },
-    });
-    
+    const requester = await this.getUserInfo(userId);
+    if(!requester) throw new NotFoundException('Requester not found');
+
+
     // 🔔 SOCKET EVENT HERE (receiverId)
     // this.socketGateway.notify(receiverId)
     this.socketService.emitToUser(receiverId, 'connection-request', {
       connectionId: connection.id,
       receiverId: receiverId,
       fromUserId: userId,
-      payload: `You have a new connection request from ${receiver?.firstName} ${receiver?.lastName}`,
+      payload: `You have a new connection request from ${requester?.firstName} ${requester?.lastName}`,
     });
-    this.prisma.notification.create({
+    await this.prisma.notification.create({
       data: {
         userId: receiverId,
         type: NotificationType.CONNECTION_REQUEST,
         title: 'New Connection Request',
-        message: `You have a new connection request from ${req.user.firstName} ${req.user.lastName}`,
-
+        message: `You have a new connection request from ${requester?.firstName} ${requester?.lastName}`,
       },
     });
 
@@ -85,6 +93,8 @@ export class ConnectionService {
       where: { id: connectionId },
       data: { status: ConnectionStatus.ACCEPTED },
     });
+    const user = await this.getUserInfo(userId);
+
 
     this.socketService.emitToUser(
       connection.requesterId,
@@ -92,15 +102,15 @@ export class ConnectionService {
       {
         connectionId,
         byUserId: userId,
-        payload: `Your connection request has been accepted by ${req.user.firstName} ${req.user.lastName}`,
+        payload: `Your connection request has been accepted by ${user?.firstName} ${user?.lastName}`,
       },
     );
-    this.prisma.notification.create({
+    await this.prisma.notification.create({
       data: {
         userId: connection.requesterId,
         type: NotificationType.CONNECTION_ACCEPTED,
         title: 'Connection Request Accepted',
-        message: `Your connection request has been accepted by ${req.user.firstName} ${req.user.lastName}`,
+        message: `Your connection request has been accepted by ${user?.firstName} ${user?.lastName}`,
       },
     });
 
@@ -363,7 +373,7 @@ export class ConnectionService {
     };
   }
 
-  async getConnectionStatus(req:any, otherId: string) {
+  async getConnectionStatus(req: any, otherId: string) {
     const myId = this.getUserId(req);
     const connection = await this.prisma.connection.findFirst({
       where: {

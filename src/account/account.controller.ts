@@ -90,4 +90,8 @@ export class AccountController {
   async getMyBoughtArtworks(@Req() req) {
     return this.accountService.getMyBoughtArtworks(req.user.sub);
   }
+  @Get('my-billing-history')
+  async getMyBillingHistory(@Req() req) {
+    return this.accountService.getMyBillingHistory(req.user.sub);
+  }
 }
