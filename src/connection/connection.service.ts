@@ -40,12 +40,19 @@ export class ConnectionService {
         receiverId,
       },
     });
+
+    const receiver = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { firstName: true, lastName: true },
+    });
+    
     // 🔔 SOCKET EVENT HERE (receiverId)
     // this.socketGateway.notify(receiverId)
     this.socketService.emitToUser(receiverId, 'connection-request', {
       connectionId: connection.id,
+      receiverId: receiverId,
       fromUserId: userId,
-      payload: `You have a new connection request from ${req.user.firstName} ${req.user.lastName}`,
+      payload: `You have a new connection request from ${receiver?.firstName} ${receiver?.lastName}`,
     });
     this.prisma.notification.create({
       data: {
