@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy, VerifyCallback } from 'passport-google-oauth20';
-import fetch from 'node-fetch'; // or global fetch if Node 18+
+// import fetch from 'node-fetch'; // or global fetch if Node 18+
 
 
 console.log(process.env.GOOGLE_CALLBACK_URL)
