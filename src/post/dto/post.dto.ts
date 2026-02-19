@@ -5,7 +5,7 @@ import {
   IsString,
   IsUUID,
 } from 'class-validator';
-import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { PaginationQueryDto } from '../../common/dto/pagination-query.dto.js';
 import { ReportReason, ReportStatus } from 'src/database/prisma-client/enums';
 
 // ======================================================

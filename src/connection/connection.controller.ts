@@ -12,7 +12,8 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ConnectionService } from './connection.service';
-import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto.js';
+
 import { CreateConnectionDto } from './connection.dto';
 
 @UseGuards(AuthGuard('jwt'))

@@ -5,7 +5,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { AccountService } from 'src/account/account.service';
-import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto.js';
+
 import { PaginatedResponseDto } from 'src/common/dto/pagination-response.dto';
 import {
   ConnectionStatus,

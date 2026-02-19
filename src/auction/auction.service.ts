@@ -12,13 +12,13 @@ import {
   PlaceBidDto,
   UserAuctionHistoryResponseDto,
 } from './dto/auction.dto';
-import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
-import { PaginatedResponseDto } from 'src/common/dto/pagination-response.dto';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto.js';
 import {
   AuctionStatus,
   NotificationType,
 } from 'src/database/prisma-client/enums';
 import { SocketService } from 'src/socket/socket.service';
+import { PaginatedResponseDto } from 'src/common/dto/pagination-response.dto';
 
 @Injectable()
 export class AuctionService {

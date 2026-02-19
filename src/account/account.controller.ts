@@ -19,7 +19,8 @@ import {
   UpdateProfileDto,
   VerifyEmailChangeDto,
 } from './dto/account.dto';
-import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto.js';
+
 
 @Controller('account')
 @UseGuards(AuthGuard('jwt'))

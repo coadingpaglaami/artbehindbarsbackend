@@ -5,7 +5,8 @@ import {
 } from '@nestjs/common';
 import { SocketService } from '../socket/socket.service';
 import { PrismaService } from 'src/database/prisma.service';
-import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto.js';
+
 import { PaginatedPostResponse } from 'src/post/dto/post.dto';
 import { PaginatedResponseDto } from 'src/common/dto/pagination-response.dto';
 

@@ -1,7 +1,8 @@
 import { Type } from 'class-transformer';
 import { IsEnum, IsOptional } from 'class-validator';
 import { AuctionResponseDto } from 'src/auction/dto/auction.dto';
-import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { PaginationQueryDto } from '../../common/dto/pagination-query.dto.js';
+
 import {
   Artist,
   Artwork,

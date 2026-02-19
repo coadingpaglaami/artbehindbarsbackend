@@ -7,7 +7,8 @@ import {
   IsOptional,
   Min,
 } from 'class-validator';
-import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { PaginationQueryDto } from '../../common/dto/pagination-query.dto.js';
+
 import { PaginatedResponseDto } from 'src/common/dto/pagination-response.dto';
 import { AuctionStatus } from 'src/database/prisma-client/enums';
 

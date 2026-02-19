@@ -10,7 +10,8 @@ import {
 } from '@nestjs/common';
 import { ChatService } from './chat.service';
 import { AuthGuard } from '@nestjs/passport';
-import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto.js';
+
 
 @Controller('chat')
 @UseGuards(AuthGuard('jwt'))

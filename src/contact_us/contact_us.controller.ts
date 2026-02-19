@@ -12,7 +12,8 @@ import { ContactUsService } from './contact_us.service';
 import { AdminReplyDto, CreateContactDto } from './dto/contact.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { Roles } from 'src/role/decorators/role.decorator';
-import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto.js';
+
 
 @Controller('contact-us')
 export class ContactUsController {

@@ -28,7 +28,8 @@ import type {
   CategoryResponse,
   GetPostQueryDto,
 } from './dto/post.dto';
-import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto.js';
+
 import { PaginatedResponseDto } from 'src/common/dto/pagination-response.dto';
 
 @Controller('post')

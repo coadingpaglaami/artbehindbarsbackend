@@ -20,7 +20,8 @@ import {
 } from './dto/post.dto';
 import { UploadService } from 'src/upload/upload.service';
 import { PaginatedResponseDto } from 'src/common/dto/pagination-response.dto';
-import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto.js';
+
 import { AccountService } from 'src/account/account.service';
 
 @Injectable()

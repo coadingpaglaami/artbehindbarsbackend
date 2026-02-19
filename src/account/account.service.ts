@@ -9,7 +9,8 @@ import * as bcrypt from 'bcrypt';
 import { randomInt } from 'crypto';
 import { MailService } from 'src/mail/mail.service';
 import { PaginatedResponseDto } from 'src/common/dto/pagination-response.dto';
-import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto.js';
+
 import { PaymentService } from 'src/payment/payment.service';
 
 @Injectable()

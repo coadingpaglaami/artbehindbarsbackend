@@ -19,7 +19,8 @@ import {
   GetAuctionsQueryDto,
   PlaceBidDto,
 } from './dto/auction.dto';
-import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto.js';
+
 
 @Controller('auction')
 export class AuctionController {

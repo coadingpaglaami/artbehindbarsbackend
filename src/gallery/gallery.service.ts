@@ -14,7 +14,8 @@ import {
 } from './dto/artist.dto';
 import { PrismaService } from 'src/database/prisma.service';
 import { UploadService } from 'src/upload/upload.service';
-import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto.js';
+
 import { PaginatedResponseDto } from 'src/common/dto/pagination-response.dto';
 import { Category, Prisma } from 'src/database/prisma-client/client';
 import {
