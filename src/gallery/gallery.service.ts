@@ -16,7 +16,7 @@ import { PrismaService } from 'src/database/prisma.service';
 import { UploadService } from 'src/upload/upload.service';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto.js';
 
-import { PaginatedResponseDto } from 'src/common/dto/pagination-response.dto';
+import { PaginatedResponseDto } from '../common/dto/pagination-response.dto.js';
 import { Category, Prisma } from 'src/database/prisma-client/client';
 import {
   CreateFanMailDto,

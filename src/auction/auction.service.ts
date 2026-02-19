@@ -18,7 +18,7 @@ import {
   NotificationType,
 } from 'src/database/prisma-client/enums';
 import { SocketService } from 'src/socket/socket.service';
-import { PaginatedResponseDto } from 'src/common/dto/pagination-response.dto';
+import { PaginatedResponseDto } from '../common/dto/pagination-response.dto';
 
 @Injectable()
 export class AuctionService {

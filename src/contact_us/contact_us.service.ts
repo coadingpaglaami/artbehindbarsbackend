@@ -7,7 +7,7 @@ import { PrismaService } from 'src/database/prisma.service';
 import { AdminReplyDto, CreateContactDto } from './dto/contact.dto';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto.js';
 
-import { PaginatedResponseDto } from 'src/common/dto/pagination-response.dto';
+import { PaginatedResponseDto } from '../common/dto/pagination-response.dto.js';
 import { MailService } from 'src/mail/mail.service';
 
 @Injectable()

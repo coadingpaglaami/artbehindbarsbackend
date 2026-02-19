@@ -30,7 +30,7 @@ import type {
 } from './dto/post.dto';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto.js';
 
-import { PaginatedResponseDto } from 'src/common/dto/pagination-response.dto';
+import { PaginatedResponseDto } from '../common/dto/pagination-response.dto.js';
 
 @Controller('post')
 export class PostController {

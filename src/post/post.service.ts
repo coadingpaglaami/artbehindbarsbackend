@@ -19,7 +19,7 @@ import {
   StateResponse,
 } from './dto/post.dto';
 import { UploadService } from 'src/upload/upload.service';
-import { PaginatedResponseDto } from 'src/common/dto/pagination-response.dto';
+import { PaginatedResponseDto } from '../common/dto/pagination-response.dto.js';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto.js';
 
 import { AccountService } from 'src/account/account.service';

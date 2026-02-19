@@ -8,7 +8,7 @@ import { UploadService } from 'src/upload/upload.service';
 import * as bcrypt from 'bcrypt';
 import { randomInt } from 'crypto';
 import { MailService } from 'src/mail/mail.service';
-import { PaginatedResponseDto } from 'src/common/dto/pagination-response.dto';
+import { PaginatedResponseDto } from '../common/dto/pagination-response.dto.js';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto.js';
 
 import { PaymentService } from 'src/payment/payment.service';

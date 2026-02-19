@@ -6,9 +6,7 @@ import {
 import { SocketService } from '../socket/socket.service';
 import { PrismaService } from 'src/database/prisma.service';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto.js';
-
-import { PaginatedPostResponse } from 'src/post/dto/post.dto';
-import { PaginatedResponseDto } from 'src/common/dto/pagination-response.dto';
+import { PaginatedResponseDto } from '../common/dto/pagination-response.dto';
 
 @Injectable()
 export class ChatService {

@@ -28,7 +28,7 @@ import { GetArtworksQueryDto } from './dto/artist.dto';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto.js';
 
-import { PaginatedResponseDto } from 'src/common/dto/pagination-response.dto';
+import { PaginatedResponseDto } from '../common/dto/pagination-response.dto.js';
 import {
   CreateFanMailDto,
   FanMailQueryDto,
