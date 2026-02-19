@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { AccountService } from 'src/account/account.service';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 import { PaginatedResponseDto } from 'src/common/dto/pagination-response.dto';
 import {
@@ -18,6 +19,7 @@ export class ConnectionService {
   constructor(
     private prisma: PrismaService,
     private socketService: SocketService,
+    private accountService: AccountService,
   ) {}
 
   private getUserInfo(userId: string) {
@@ -52,8 +54,7 @@ export class ConnectionService {
     });
 
     const requester = await this.getUserInfo(userId);
-    if(!requester) throw new NotFoundException('Requester not found');
-
+    if (!requester) throw new NotFoundException('Requester not found');
 
     // 🔔 SOCKET EVENT HERE (receiverId)
     // this.socketGateway.notify(receiverId)
@@ -94,7 +95,6 @@ export class ConnectionService {
       data: { status: ConnectionStatus.ACCEPTED },
     });
     const user = await this.getUserInfo(userId);
-
 
     this.socketService.emitToUser(
       connection.requesterId,
@@ -186,7 +186,11 @@ export class ConnectionService {
 
     const [total, data] = await Promise.all([
       this.prisma.connection.count({
-        where: { receiverId: userId, status: 'PENDING' },
+        where: {
+          receiverId: userId,
+          status: 'PENDING',
+          NOT: { requesterId: { in: await this.getMyBlockedUserIds(userId) } },
+        },
       }),
       this.prisma.connection.findMany({
         where: { receiverId: userId, status: 'PENDING' },
@@ -208,13 +212,22 @@ export class ConnectionService {
     const userId = this.getUserId(req);
     const { page = 1, limit = 10 } = dto;
     const skip = (page - 1) * limit;
+    const blockIds = await this.getMyBlockedUserIds(userId);
 
     const [total, connections] = await Promise.all([
       this.prisma.connection.count({
-        where: { requesterId: userId, status: 'PENDING' },
+        where: {
+          requesterId: userId,
+          status: 'PENDING',
+          NOT: { receiverId: { in: blockIds } },
+        },
       }),
       this.prisma.connection.findMany({
-        where: { requesterId: userId, status: 'PENDING' },
+        where: {
+          requesterId: userId,
+          status: 'PENDING',
+          NOT: { receiverId: { in: blockIds } },
+        },
         include: {
           receiver: {
             select: {
@@ -242,9 +255,15 @@ export class ConnectionService {
     const { page = 1, limit = 10 } = dto;
     const skip = (page - 1) * limit;
 
+    const blockIds = await this.getMyBlockedUserIds(userId);
+
     const where = {
       status: ConnectionStatus.ACCEPTED,
       OR: [{ requesterId: userId }, { receiverId: userId }],
+      NOT: [
+        { requesterId: { in: blockIds } },
+        { receiverId: { in: blockIds } },
+      ],
     };
 
     // 1️⃣ Get connections with users + their connection counts
@@ -405,5 +424,13 @@ export class ConnectionService {
   }
   private getUserId(req: any): string {
     return req.user?.sub;
+  }
+
+  private async getMyBlockedUserIds(userId: string): Promise<string[]> {
+    const blocked = await this.accountService.getMyBlockedUsers(
+      userId,
+      new PaginationQueryDto(),
+    );
+    return blocked.data.map((b) => b.id);
   }
 }

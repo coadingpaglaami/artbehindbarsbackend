@@ -175,6 +175,7 @@ export class AuctionService {
     this.socket.emitToAuction(dto.auctionId, 'auction:newBid', {
       auctionId: dto.auctionId,
       ...result,
+      message: `New bid of $${result.bidPrice.toFixed(2)} by ${result.firstName} ${result.lastName}!`,
     });
 
     return result;
@@ -437,7 +438,6 @@ export class AuctionService {
       orderBy: { bidPrice: 'desc' },
     });
 
-
     const auction = await this.prisma.auction.findUnique({
       where: { id: auctionId },
     });
@@ -574,7 +574,7 @@ export class AuctionService {
         },
         auction: {
           select: { id: true, currentPrice: true },
-        },   
+        },
       },
     });
   }

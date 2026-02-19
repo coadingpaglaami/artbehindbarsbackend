@@ -5,9 +5,10 @@ import { PrismaModule } from 'src/database/prisma.module';
 import { AuthModule } from 'src/auth/auth.module';
 import { RoleModule } from 'src/role/role.module';
 import { UploadModule } from 'src/upload/upload.module';
+import { AccountModule } from 'src/account/account.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule, RoleModule, UploadModule],
+  imports: [PrismaModule, AuthModule, RoleModule, UploadModule,AccountModule],
   controllers: [PostController],
   providers: [PostService],
 })

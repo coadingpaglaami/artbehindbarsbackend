@@ -17,6 +17,7 @@ model User {
   bio                 String?
   profilePictureUrl   String?
   location            String?
+  point               Int               @default(0)
   otpType             OtpType?
   createdArtists      Artist[]          @relation("ArtistCreatedBy")
   uploadedArtworks    Artwork[]         @relation("ArtworkUploadedBy")

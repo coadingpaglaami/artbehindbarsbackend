@@ -11,5 +11,6 @@ import { PaymentModule } from 'src/payment/payment.module';
   imports:[AuthModule,PrismaModule,UploadModule,MailModule,PaymentModule],
   controllers: [AccountController],
   providers: [AccountService],
+  exports:[AccountService]
 })
 export class AccountModule {}

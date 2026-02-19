@@ -5,9 +5,10 @@ import { PrismaModule } from 'src/database/prisma.module';
 import { AuthModule } from 'src/auth/auth.module';
 import { SocketModule } from 'src/socket/socket.module';
 import { NotificationModule } from 'src/notification/notification.module';
+import { AccountModule } from 'src/account/account.module';
 
 @Module({
-  imports:[PrismaModule,AuthModule,SocketModule,NotificationModule],
+  imports:[PrismaModule,AuthModule,SocketModule,NotificationModule,AccountModule],
   controllers: [ConnectionController],
   providers: [ConnectionService],
 })

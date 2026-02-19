@@ -21,12 +21,14 @@ import {
 import { UploadService } from 'src/upload/upload.service';
 import { PaginatedResponseDto } from 'src/common/dto/pagination-response.dto';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { AccountService } from 'src/account/account.service';
 
 @Injectable()
 export class PostService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly uploadService: UploadService,
+    private readonly accountService: AccountService
   ) {}
 
   // =======================
@@ -604,5 +606,13 @@ export class PostService {
     return {
       message: `User suspended for ${days} days`,
     };
+  }
+
+    private async getMyBlockedUserIds(userId: string): Promise<string[]> {
+    const blocked = await this.accountService.getMyBlockedUsers(
+      userId,
+      new PaginationQueryDto(),
+    );
+    return blocked.data.map((b) => b.id);
   }
 }
