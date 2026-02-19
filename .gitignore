@@ -63,3 +63,5 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 /src/database/prisma-client
 /src/database/prisma-client/internal/class.ts
 /src/database/prisma-client/client.ts
+/pnpm-lock.yaml
+/pnpm-workspace.yaml
