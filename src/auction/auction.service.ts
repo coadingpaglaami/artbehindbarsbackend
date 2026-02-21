@@ -16,15 +16,18 @@ import { PaginationQueryDto } from '../common/dto/pagination-query.dto.js';
 import {
   AuctionStatus,
   NotificationType,
+  UserActivityType,
 } from 'src/database/prisma-client/enums';
 import { SocketService } from 'src/socket/socket.service';
 import { PaginatedResponseDto } from '../common/dto/pagination-response.dto';
+import { ProgressService } from 'src/progress/progress.service';
 
 @Injectable()
 export class AuctionService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly socket: SocketService,
+    private readonly progressService: ProgressService,
   ) {}
 
   /** 🔑 Centralized auction status resolver */
@@ -171,6 +174,12 @@ export class AuctionService {
         lastName: bid.user.lastName,
       };
     });
+
+    await this.progressService.award(
+      userId,
+      UserActivityType.BID,
+      dto.auctionId,
+    );
 
     this.socket.emitToAuction(dto.auctionId, 'auction:newBid', {
       auctionId: dto.auctionId,

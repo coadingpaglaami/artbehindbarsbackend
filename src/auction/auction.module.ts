@@ -7,6 +7,7 @@ import { RoleModule } from 'src/role/role.module';
 import { SocketModule } from 'src/socket/socket.module';
 import { NotificationModule } from 'src/notification/notification.module';
 import { AuctionCronService } from './cron/auction.cron';
+import { ProgressModule } from 'src/progress/progress.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { AuctionCronService } from './cron/auction.cron';
     AuthModule,
     SocketModule,
     NotificationModule,
+    ProgressModule,
   ],
   controllers: [AuctionController],
   providers: [AuctionService, AuctionCronService],

@@ -17,18 +17,24 @@ import { UploadService } from 'src/upload/upload.service';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto.js';
 
 import { PaginatedResponseDto } from '../common/dto/pagination-response.dto.js';
-import { Category, Prisma } from 'src/database/prisma-client/client';
+import {
+  ActivityType,
+  Category,
+  Prisma,
+} from 'src/database/prisma-client/client';
 import {
   CreateFanMailDto,
   FanMailQueryDto,
   ReplyFanMailDto,
 } from './dto/fanmail.dto';
+import { ProgressService } from 'src/progress/progress.service';
 
 @Injectable()
 export class GalleryService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly uploadService: UploadService,
+    private readonly progressService: ProgressService,
   ) {}
   async createArtist(
     artist: ArtistRequestDto,
@@ -503,7 +509,7 @@ export class GalleryService {
   }
 
   async sendFanMail(userId: string, artistId: string, dto: CreateFanMailDto) {
-    return this.prisma.fanMail.create({
+    const fanMail = await this.prisma.fanMail.create({
       data: {
         artistId,
         senderUserId: userId,
@@ -523,6 +529,14 @@ export class GalleryService {
         },
       },
     });
+
+    await this.progressService.award(
+      userId,
+      ActivityType.SEND_FANMAIL,
+      fanMail.id,
+    );
+
+    return fanMail;
   }
 
   async getMyFanMails(userId: string, query: PaginationQueryDto) {

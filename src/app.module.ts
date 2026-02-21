@@ -17,6 +17,7 @@ import { PaymentModule } from './payment/payment.module';
 import { NotificationModule } from './notification/notification.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AccountModule } from './account/account.module';
+import { ProgressModule } from './progress/progress.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { AccountModule } from './account/account.module';
     NotificationModule,
     ScheduleModule.forRoot(),
     AccountModule,
+    ProgressModule,
   ],
   controllers: [AppController],
   providers: [AppService],

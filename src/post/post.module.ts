@@ -6,9 +6,11 @@ import { AuthModule } from 'src/auth/auth.module';
 import { RoleModule } from 'src/role/role.module';
 import { UploadModule } from 'src/upload/upload.module';
 import { AccountModule } from 'src/account/account.module';
+import { ProgressModule } from 'src/progress/progress.module';
+import { SocketModule } from 'src/socket/socket.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule, RoleModule, UploadModule,AccountModule],
+  imports: [PrismaModule, AuthModule, RoleModule, UploadModule,AccountModule,ProgressModule,SocketModule],
   controllers: [PostController],
   providers: [PostService],
 })

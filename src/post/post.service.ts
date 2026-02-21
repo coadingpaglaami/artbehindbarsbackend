@@ -23,13 +23,18 @@ import { PaginatedResponseDto } from '../common/dto/pagination-response.dto.js';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto.js';
 
 import { AccountService } from 'src/account/account.service';
+import { ProgressService } from 'src/progress/progress.service';
+import { UserActivityType } from 'src/database/prisma-client/enums';
+import { SocketService } from 'src/socket/socket.service';
+import { title } from 'process';
 
 @Injectable()
 export class PostService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly uploadService: UploadService,
-    private readonly accountService: AccountService
+    private readonly progressService: ProgressService,
+    private readonly socketService: SocketService,
   ) {}
 
   // =======================
@@ -114,7 +119,7 @@ export class PostService {
       videoUrl = await this.uploadService.uploadVideo(video, 'posts/videos');
     }
 
-    return this.prisma.post.create({
+    const post = await this.prisma.post.create({
       data: {
         title: dto.title,
         content: dto.content,
@@ -126,6 +131,14 @@ export class PostService {
       },
       select: this.postSelect(),
     });
+
+    // Log activity
+    await this.progressService.award(
+      userId,
+      UserActivityType.CREATE_POST,
+      post.id,
+    );
+    return post;
   }
 
   async getPostById(postId: string) {
@@ -180,6 +193,8 @@ export class PostService {
   // =======================
 
   async toggleLike(userId: string, postId: string) {
+    const LIKE_POINTS = 5;
+
     const post = await this.prisma.post.findUnique({
       where: { id: postId },
       select: { id: true, userId: true },
@@ -199,17 +214,81 @@ export class PostService {
       },
     });
 
+    // 🔥 If already liked → UNLIKE → deduct points
     if (existing) {
-      await this.prisma.like.delete({
-        where: { id: existing.id },
-      });
+      await this.prisma.$transaction([
+        // Remove like
+        this.prisma.like.delete({
+          where: { id: existing.id },
+        }),
+
+        // Deduct points safely
+        this.prisma.user.update({
+          where: { id: userId },
+          data: {
+            point: {
+              decrement: LIKE_POINTS,
+            },
+          },
+        }),
+
+        // Log point transaction (negative)
+        this.prisma.pointTransaction.create({
+          data: {
+            userId,
+            activity: UserActivityType.LIKE,
+            points: -LIKE_POINTS,
+          },
+        }),
+
+        // Remove activity log
+        this.prisma.userActivity.deleteMany({
+          where: {
+            userId,
+            type: UserActivityType.LIKE,
+            refId: postId,
+          },
+        }),
+      ]);
 
       return { liked: false };
     }
 
-    await this.prisma.like.create({
-      data: { userId, postId },
-    });
+    // 🔥 If not liked → LIKE → add points
+    await this.prisma.$transaction([
+      // Create like
+      this.prisma.like.create({
+        data: { userId, postId },
+      }),
+
+      // Add points
+      this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          point: {
+            increment: LIKE_POINTS,
+          },
+        },
+      }),
+
+      // Log point transaction
+      this.prisma.pointTransaction.create({
+        data: {
+          userId,
+          activity: UserActivityType.LIKE,
+          points: LIKE_POINTS,
+        },
+      }),
+
+      // Log activity
+      this.prisma.userActivity.create({
+        data: {
+          userId,
+          type: UserActivityType.LIKE,
+          refId: postId,
+        },
+      }),
+    ]);
 
     return { liked: true };
   }
@@ -239,7 +318,7 @@ export class PostService {
       }
     }
 
-    return this.prisma.comment.create({
+    const comment = await this.prisma.comment.create({
       data: {
         content: dto.content,
         userId,
@@ -255,6 +334,10 @@ export class PostService {
         },
       },
     });
+
+    this.progressService.award(userId, UserActivityType.COMMENT, comment.id);
+
+    return comment;
   }
 
   async getComments(postId: string) {
@@ -532,10 +615,17 @@ export class PostService {
         },
       },
       include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+          },
+        },
         reports: {
           include: {
             user: {
               select: {
+                id: true,
                 firstName: true,
               },
             },
@@ -554,6 +644,9 @@ export class PostService {
     const data = paginatedPosts.map((post) => ({
       postId: post.id,
       title: post.title,
+      content: post.content,
+      userName: post.user.firstName,
+      userId: post.user.id,
       reportCount: post.reports.length,
       reports: post.reports.map((r) => ({
         userFirstName: r.user.firstName,
@@ -609,11 +702,35 @@ export class PostService {
     };
   }
 
-    private async getMyBlockedUserIds(userId: string): Promise<string[]> {
-    const blocked = await this.accountService.getMyBlockedUsers(
-      userId,
-      new PaginationQueryDto(),
-    );
-    return blocked.data.map((b) => b.id);
+  async unSuspendUser(userId: string) {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        isSuspended: false,
+        suspendedUntil: null,
+      },
+    });
+    return {
+      message: 'User unsuspended successfully',
+    };
+  }
+
+  async warnUser(userId: string, reason: string) {
+    await this.prisma.notification.create({
+      data: {
+        userId,
+        title: 'Account Warning',
+        message: `You have received a warning: ${reason}`,
+        type: 'WARNING',
+      },
+    });
+
+    this.socketService.emitToUser(userId, 'user-warning', {
+      title: 'Account Warning',
+      message: reason,
+    });
+    return {
+      message: 'User has been warned successfully',
+    };
   }
 }

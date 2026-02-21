@@ -8,12 +8,17 @@ import { SquareClient, SquareEnvironment, SquareError } from 'square'; // New na
 import { v4 as uuidv4 } from 'uuid';
 import { IPaymentData } from './dto/pay.dto';
 import { PrismaService } from 'src/database/prisma.service';
+import { ProgressService } from 'src/progress/progress.service';
+import { ActivityType } from 'src/database/prisma-client/enums';
 
 @Injectable()
 export class PaymentService {
   private client: SquareClient;
 
-  constructor(private readonly prismaService: PrismaService) {
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly progressService: ProgressService,
+  ) {
     this.client = new SquareClient({
       token: process.env.SANDBOX_ACCESS_TOKEN,
       environment: SquareEnvironment.Sandbox,
@@ -140,6 +145,11 @@ export class PaymentService {
             'Either orderId (auction) or artworkId (buy now) is required',
           );
         }
+        await this.progressService.award(
+          userId,
+          ActivityType.BUY_PRODUCT,
+          order.id,
+        );
 
         return order;
       });

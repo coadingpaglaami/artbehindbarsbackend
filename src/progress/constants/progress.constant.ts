@@ -1,0 +1,17 @@
+export const ACTIVITY_POINTS = {
+  BUY_PRODUCT: 50,
+  CREATE_POST: 20,
+  COMMENT: 5,
+  LIKE: 2,
+  BID: 10,
+  SEND_FANMAIL: 15,
+};
+
+export const WEIGHTS = {
+  CREATE_POST: 15,
+  COMMENT: 10,
+  LIKE: 5,
+  BID: 20,
+  BUY_PRODUCT: 40,
+  CHAT_MESSAGE: 2,
+};

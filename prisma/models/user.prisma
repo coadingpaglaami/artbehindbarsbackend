@@ -40,7 +40,9 @@ model User {
 
   notifications Notification[]
 
-  auctions Auction[]
+  auctions          Auction[]
+  userActivities    UserActivity[]
+  pointTransactions PointTransaction[]
 }
 
 enum Role {
@@ -65,4 +67,53 @@ model UserBlock {
   blocked User @relation("Blocked", fields: [blockedId], references: [id])
 
   @@unique([blockerId, blockedId])
+}
+
+enum IsActive {
+  ACTIVE
+  INACTIVE
+  SUSPEND
+}
+
+enum ActivityType {
+  BUY_PRODUCT
+  CREATE_POST
+  COMMENT
+  LIKE
+  BID
+  SEND_FANMAIL
+}
+
+model UserActivity {
+  id        String       @id @default(uuid()) @db.Uuid
+  userId    String       @db.Uuid
+  type      ActivityType
+  refId     String?
+  createdAt DateTime     @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model PointTransaction {
+  id        String           @id @default(uuid()) @db.Uuid
+  userId    String           @db.Uuid
+  activity  UserActivityType
+  points    Int
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+enum UserActivityType {
+  BUY_PRODUCT
+  CREATE_POST
+  COMMENT
+  LIKE
+  BID
+  SEND_FANMAIL
 }

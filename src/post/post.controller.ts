@@ -31,6 +31,8 @@ import type {
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto.js';
 
 import { PaginatedResponseDto } from '../common/dto/pagination-response.dto.js';
+import { Role } from 'src/database/prisma-client/enums';
+
 
 @Controller('post')
 export class PostController {
@@ -198,5 +200,20 @@ export class PostController {
   @UseGuards(AuthGuard('jwt'))
   suspendUser(@Param('id') userId: string, @Body('days') days: number) {
     return this.postService.adminSuspendUser(userId, days);
+  }
+
+  @Roles(['ADMIN'])
+  @Post('warn-user')
+  @UseGuards(AuthGuard('jwt'))
+  async warnUser(@Body() dto: { userId: string; reason: string }) {
+    const { userId, reason } = dto;
+    await this.postService.warnUser(userId, reason);
+  }
+
+  @Roles(['ADMIN'])
+  @Post('admin/users/:id/unsuspend')
+  @UseGuards(AuthGuard('jwt'))
+  async unSuspendUser(@Param('id') userId: string) {
+    return this.postService.unSuspendUser(userId);
   }
 }
