@@ -4,6 +4,7 @@ model FanMail {
   senderUserId   String         @db.Uuid
   subject        String?
   message        String
+  isReadBySender Boolean        @default(false)
   status         FanMailStatus  @default(PENDING)
   isArchived     Boolean        @default(false)
   repliedAt      DateTime?

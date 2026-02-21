@@ -123,6 +123,7 @@ export class GalleryService {
           state: true,
           createdAt: true,
           image: true,
+          _count: { select: { artworks: true } },
         },
       }),
       this.prisma.artist.count(),
@@ -544,7 +545,8 @@ export class GalleryService {
     const limit = query.limit ?? 10;
     const skip = (page - 1) * limit;
 
-    const [data, total] = await this.prisma.$transaction([
+    const [data, total, unreadCount] = await this.prisma.$transaction([
+      // 1️⃣ Paginated fan mails
       this.prisma.fanMail.findMany({
         where: { senderUserId: userId },
         skip,
@@ -555,6 +557,8 @@ export class GalleryService {
           subject: true,
           message: true,
           status: true,
+          isReadBySender: true,
+          createdAt: true,
           artist: {
             select: {
               id: true,
@@ -563,10 +567,61 @@ export class GalleryService {
           },
         },
       }),
-      this.prisma.fanMail.count({ where: { senderUserId: userId } }),
+
+      // 2️⃣ Total count
+      this.prisma.fanMail.count({
+        where: { senderUserId: userId },
+      }),
+
+      // 3️⃣ Unread replied count
+      this.prisma.fanMail.count({
+        where: {
+          senderUserId: userId,
+          status: 'REPLIED',
+          isReadBySender: false,
+        },
+      }),
     ]);
 
-    return { data, meta: { page, limit, total } };
+    // Transform for UI
+    const transformed = data.map((mail) => ({
+      ...mail,
+      uiStatus: this.mapFanMailStatus(mail),
+    }));
+
+    return {
+      data: transformed,
+      unreadCount, // 🔥 Badge count here
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async fanMailRead(userId: string, fanMailId: string) {
+    console.log(fanMailId)
+    const fanMail = await this.prisma.fanMail.findUnique({
+      where: { id: fanMailId },
+    });
+
+    if (!fanMail) {
+      throw new NotFoundException('Fan mail not found');
+    }
+
+    if (fanMail.senderUserId !== userId) {
+      throw new BadRequestException('Unauthorized');
+    }
+
+    await this.prisma.fanMail.update({
+      where: { id: fanMailId },
+      data: {
+        isReadBySender: true,
+        status: 'CLOSED', // optional if you want auto-close
+      },
+    });
   }
 
   async adminGetFanMails(query: FanMailQueryDto) {
@@ -675,5 +730,25 @@ export class GalleryService {
       where: { id },
       data: { isArchived: true, status: 'CLOSED' },
     });
+  }
+
+  private mapFanMailStatus(mail: { status: string; isReadBySender: boolean }) {
+    if (mail.status === 'PENDING') {
+      return 'Not Replied';
+    }
+
+    if (mail.status === 'REPLIED' && !mail.isReadBySender) {
+      return 'Replied (Unread)';
+    }
+
+    if (mail.status === 'REPLIED' && mail.isReadBySender) {
+      return 'Replied';
+    }
+
+    if (mail.status === 'CLOSED') {
+      return 'Closed';
+    }
+
+    return 'Unknown';
   }
 }

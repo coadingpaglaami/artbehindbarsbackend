@@ -101,7 +101,7 @@ export class GalleryController {
       files.artistImage ? files.artistImage[0] : undefined,
     );
   }
-  
+
   @Delete('artist/:id')
   @UseGuards(AuthGuard('jwt'))
   @Roles(['ADMIN'])
@@ -186,6 +186,13 @@ export class GalleryController {
   @UseGuards(AuthGuard('jwt'))
   myMails(@Req() req: any, @Query() query: PaginationQueryDto) {
     return this.galleryService.getMyFanMails(req.user.sub, query);
+  }
+
+  @Patch('read-fan-mail/:id')
+  @UseGuards(AuthGuard('jwt'))
+  markAsRead(@Param('id') id: string, @Req() req: any) {
+    console.log(id);
+    return this.galleryService.fanMailRead(req.user.sub, id);
   }
 
   @Get(ADMIN_FANMAIL_BASE_ROUTE)
