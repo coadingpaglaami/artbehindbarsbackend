@@ -31,7 +31,6 @@ import type {
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto.js';
 
 import { PaginatedResponseDto } from '../common/dto/pagination-response.dto.js';
-import { Role } from 'src/database/prisma-client/enums';
 
 
 @Controller('post')
