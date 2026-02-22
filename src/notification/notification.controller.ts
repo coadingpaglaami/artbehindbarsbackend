@@ -11,10 +11,10 @@ import { NotificationService } from './notification.service';
 import { AuthGuard } from '@nestjs/passport';
 
 @Controller('notification')
+@UseGuards(AuthGuard('jwt'))
 export class NotificationController {
   constructor(private readonly notificationService: NotificationService) {}
 
-  @UseGuards(AuthGuard('jwt'))
   @Get()
   async getMyNotifications(@Req() req: any) {
     const userId = req.user.sub; // Assuming user ID is stored in req.user.sub after authentication

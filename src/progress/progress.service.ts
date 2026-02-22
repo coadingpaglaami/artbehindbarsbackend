@@ -68,7 +68,7 @@ export class ProgressService {
   async getEngagementTrend() {
     return this.prisma.$queryRaw`
     SELECT DATE("createdAt") as day,
-           COUNT(*) as total
+           COUNT(*)::int as total
     FROM "UserActivity"
     WHERE "createdAt" >= NOW() - INTERVAL '7 days'
     GROUP BY day

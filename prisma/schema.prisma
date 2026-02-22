@@ -4,6 +4,12 @@ generator client {
   moduleFormat = "cjs"
 }
 
+generator markdown {
+  provider = "prisma-markdown"
+  output   = "./DATABASE_SCHEMA.md"
+}
+
+
 datasource db {
   provider = "postgresql"
 }
