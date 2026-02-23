@@ -404,7 +404,7 @@ export class PostService {
     });
   }
 
-  async getAllPosts(query: GetPostQueryDto) {
+  async getAllPosts(query: GetPostQueryDto,userId?: string): Promise<PaginatedResponseDto<PostResponse>> {
     const {
       page = 1,
       limit = 10,

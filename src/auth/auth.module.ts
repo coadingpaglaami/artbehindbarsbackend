@@ -12,7 +12,7 @@ import { JwtStrategy } from './jwt.strategy';
 @Module({
   imports: [
     PrismaModule,
-    PassportModule.register({ defaultStrategy: 'jwt' }),
+    PassportModule.register({ defaultStrategy: 'jwt', session: false }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
@@ -24,6 +24,6 @@ import { JwtStrategy } from './jwt.strategy';
     MailModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, GoogleStrategy,JwtStrategy],
+  providers: [AuthService, GoogleStrategy, JwtStrategy],
 })
 export class AuthModule {}

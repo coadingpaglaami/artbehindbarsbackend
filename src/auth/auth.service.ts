@@ -316,7 +316,7 @@ export class AuthService {
   //  Google OAuth
   // ===============================
 
-  async googleLogin(req: any) {
+  async googleLogin(req: any):Promise<LoginResponseDto> {
     // user comes from GoogleStrategy validate()
     const googleUser = req.user;
 

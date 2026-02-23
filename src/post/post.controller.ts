@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Injectable,
   Param,
   Patch,
   Post,
@@ -32,10 +33,18 @@ import { PaginationQueryDto } from '../common/dto/pagination-query.dto.js';
 
 import { PaginatedResponseDto } from '../common/dto/pagination-response.dto.js';
 
+@Injectable()
+export class OptionalJwtAuthGuard extends AuthGuard('jwt') {
+  handleRequest(err, user) {
+    return user || null;
+  }
+}
 
 @Controller('post')
 export class PostController {
-  constructor(private readonly postService: PostService) {}
+  constructor(
+    private readonly postService: PostService,
+  ) {}
   @Post()
   @UseGuards(AuthGuard('jwt'))
   @UseInterceptors(
@@ -57,9 +66,10 @@ export class PostController {
       files?.video?.[0],
     );
   }
+  @UseGuards(OptionalJwtAuthGuard)
   @Get()
-  getAllPosts(@Query() query: GetPostQueryDto) {
-    return this.postService.getAllPosts(query);
+  getAllPosts(@Query() query: GetPostQueryDto, @Req() req: any) {
+    return this.postService.getAllPosts(query, req.user?.sub);
   }
 
   @Get('states')
@@ -82,7 +92,7 @@ export class PostController {
 
   @Get(':id/user')
   @UseGuards(AuthGuard('jwt'))
-  getPostDetails(@Param('id')  userId: string, @Query() query: GetPostQueryDto) {
+  getPostDetails(@Param('id') userId: string, @Query() query: GetPostQueryDto) {
     return this.postService.getUserAllPost(userId, query);
   }
 

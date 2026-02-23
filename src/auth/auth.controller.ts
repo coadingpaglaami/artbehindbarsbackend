@@ -1,9 +1,18 @@
-import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 
 import type {
   ForgetPasswordRequestDto,
   LoginRequestDto,
+  LoginResponseDto,
   OTPRequestDto,
   RefreshTokenRequestDto,
   ResetPasswordRequestDto,
@@ -11,6 +20,7 @@ import type {
 } from './dto/auth.dto';
 
 import { AuthGuard } from '@nestjs/passport';
+import type { Response } from 'express';
 
 @Controller('auth')
 export class AuthController {
@@ -68,7 +78,18 @@ export class AuthController {
   // GET /auth/google/callback
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
-  googleCallback(@Req() req: any) {
-    return this.authService.googleLogin(req);
+  async googleCallback(@Req() req: any, @Res() res: Response) {
+    console.log(req.user, 'user');
+    const result = await this.authService.googleLogin(req);
+    const { accessToken, refreshToken } = result;
+    res.cookie('accessToken', accessToken, {
+      httpOnly: false,
+      secure: process.env.NODE_ENV === 'production',
+    });
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: false,
+      secure: process.env.NODE_ENV === 'production',
+    });
+    return res.redirect(process.env.FRONTEND_URL || 'http://localhost:3000'); // Redirect to frontend after successful login
   }
 }
