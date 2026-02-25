@@ -10,6 +10,7 @@ import { IPaymentData } from './dto/pay.dto';
 import { PrismaService } from 'src/database/prisma.service';
 import { ProgressService } from 'src/progress/progress.service';
 import { ActivityType } from 'src/database/prisma-client/enums';
+import { SocketService } from 'src/socket/socket.service';
 
 @Injectable()
 export class PaymentService {
@@ -18,6 +19,7 @@ export class PaymentService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly progressService: ProgressService,
+    private readonly socket: SocketService,
   ) {
     this.client = new SquareClient({
       token: process.env.SANDBOX_ACCESS_TOKEN,
@@ -145,6 +147,68 @@ export class PaymentService {
             'Either orderId (auction) or artworkId (buy now) is required',
           );
         }
+        // Award progress points
+        const auction = await tx.auction.findFirst({
+          where: { artworkId: order.artworkId },
+        });
+
+        if (auction?.status === 'Upcoming' || auction?.status === 'Ongoing') {
+          await tx.auction.update({
+            where: { id: auction.id },
+            data: {
+              status: 'Ended',
+            },
+          });
+          const bidders = await tx.auctionBid.findMany({
+            where: {
+              auctionId: auction.id,
+            },
+            select: { userId: true },
+          });
+
+          if (bidders.length === 0) {
+            return order;
+          }
+
+          // 2️⃣ Remove duplicates (very important)
+          const uniqueBidderIds = [...new Set(bidders.map((b) => b.userId))];
+
+          // 3️⃣ Create notifications for all bidders
+          await tx.notification.createMany({
+            data: uniqueBidderIds.map((userId) => ({
+              userId,
+              title: 'Auction Ended',
+              message: `Auction for "${order.artwork.title}" has been sold for $${order.totalAmount}.`,
+            })),
+          });
+
+          uniqueBidderIds.forEach((bidderId) => {
+            this.socket.emitToUser(bidderId, 'notification', {
+              title: 'Auction Ended',
+              message: `Auction for "${order.artwork.title}" has been sold for $${order.totalAmount}.`,
+            });
+          });
+        }
+
+        const admin = await tx.user.findFirst({
+          where: { role: 'ADMIN' },
+        });
+
+        if (admin) {
+          await tx.notification.create({
+            data: {
+              userId: admin?.id ?? '',
+              title: 'New Sale',
+              message: `Artwork "${order.artwork.title}" sold for $${order.totalAmount} to ${order.buyer.firstName}.`,
+            },
+          });
+        }
+
+        this.socket.emitToUser(admin?.id ?? '', 'notification', {
+          title: 'New Sale',
+          message: `Artwork "${order.artwork.title}" sold for $${order.totalAmount} to ${order.buyer.firstName}.`,
+        });
+
         await this.progressService.award(
           userId,
           ActivityType.BUY_PRODUCT,

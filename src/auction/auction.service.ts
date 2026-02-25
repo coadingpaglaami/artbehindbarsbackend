@@ -445,10 +445,28 @@ export class AuctionService {
     const topBid = await this.prisma.auctionBid.findFirst({
       where: { auctionId },
       orderBy: { bidPrice: 'desc' },
+      select: {
+        userId: true,
+        user: {
+          select: {
+            firstName: true,
+            lastName: true,
+          },
+        },
+        bidPrice: true,
+      },
     });
 
     const auction = await this.prisma.auction.findUnique({
       where: { id: auctionId },
+      include: {
+        artwork: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
+      },
     });
     if (!topBid || !auction || !auction.artworkId) return;
 
@@ -487,6 +505,20 @@ export class AuctionService {
         },
       });
 
+      const admin = await tx.user.findFirst({
+        where: { role: 'ADMIN' },
+      });
+      if (admin) {
+        await tx.notification.create({
+          data: {
+            userId: admin.id,
+            title: 'New Auction Won',
+            message: `User ${topBid.user.firstName} has won auction ${auction.artwork.title} with a bid of $${topBid.bidPrice}. Order ID: ${order.id}`,
+            type: NotificationType.ADMIN,
+          },
+        });
+      }
+
       // 3️⃣ Mark auction ended
       await tx.auction.update({
         where: { id: auctionId },
@@ -495,6 +527,7 @@ export class AuctionService {
 
       // 4️⃣ Emit notification via socket
       this.socket.emitToUser(topBid.userId, 'notification', notification);
+      this.socket.emitToUser(admin?.id ?? '', 'notification', notification);
     });
   }
 
@@ -510,7 +543,7 @@ export class AuctionService {
       const suspendUntil = new Date();
       suspendUntil.setMonth(suspendUntil.getMonth() + 2);
 
-      await this.prisma.user.update({
+      const suspendedUser = await this.prisma.user.update({
         where: { id: order.buyerId },
         data: {
           isSuspended: true,
@@ -524,6 +557,24 @@ export class AuctionService {
           title: 'Account Suspended',
           message: 'Auction payment missed. Account suspended for 2 months.',
         },
+      });
+
+      const admin = await this.prisma.user.findFirst({
+        where: { role: 'ADMIN' },
+      });
+      if (admin) {
+        await this.prisma.notification.create({
+          data: {
+            userId: admin.id,
+            title: 'User Suspended',
+            message: `User with ID ${suspendedUser.firstName} has been suspended until ${suspendedUser.suspendedUntil} due to missed payment for order ${order.id}.`,
+          },
+        });
+      }
+
+      this.socket.emitToUser(admin?.id ?? '', 'notification', {
+        title: 'User Suspended',
+        message: `User with ID ${suspendedUser.firstName} has been suspended until ${suspendedUser.suspendedUntil} due to missed payment for order ${order.id}.`,
       });
 
       await this.prisma.order.update({

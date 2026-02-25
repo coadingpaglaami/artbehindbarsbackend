@@ -725,7 +725,7 @@ export class PostService {
       },
     });
 
-    this.socketService.emitToUser(userId, 'user-warning', {
+    this.socketService.emitToUser(userId, 'notification', {
       title: 'Account Warning',
       message: reason,
     });
