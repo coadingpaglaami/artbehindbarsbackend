@@ -416,6 +416,7 @@ export class GalleryService {
             endAt: true,
             status: true,
             currentPrice: true,
+            startPrice: true,
           },
         },
       },

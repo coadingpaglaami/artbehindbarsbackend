@@ -180,13 +180,23 @@ export class AuthService {
     });
 
     if (!user || !user.password) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException('Incorrect email or password');
     }
 
     const isMatch = await bcrypt.compare(dto.password as string, user.password);
 
-    if (!isMatch) throw new UnauthorizedException('Invalid credentials');
+    if (!isMatch)
+      throw new UnauthorizedException('Incorrect email or password');
 
+    if (
+      user.isSuspended &&
+      user.suspendedUntil &&
+      user.suspendedUntil > new Date()
+    ) {
+      throw new ForbiddenException(
+        `Account suspended until ${user.suspendedUntil}`,
+      );
+    }
     const payload = {
       sub: user.id,
       email: user.email,
@@ -316,7 +326,7 @@ export class AuthService {
   //  Google OAuth
   // ===============================
 
-  async googleLogin(req: any):Promise<LoginResponseDto> {
+  async googleLogin(req: any): Promise<LoginResponseDto> {
     // user comes from GoogleStrategy validate()
     const googleUser = req.user;
 

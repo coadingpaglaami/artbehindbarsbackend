@@ -19,6 +19,8 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { AccountModule } from './account/account.module';
 import { ProgressModule } from './progress/progress.module';
 import { OverviewModule } from './overview/overview.module';
+import { SuspendedGuard } from './role/guard/suspend.guard';
+import { APP_GUARD } from '@nestjs/core';
 
 @Module({
   imports: [
@@ -42,6 +44,12 @@ import { OverviewModule } from './overview/overview.module';
     OverviewModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: SuspendedGuard,
+    },
+  ],
 })
 export class AppModule {}
