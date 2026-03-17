@@ -1,0 +1,54 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🚀 Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e  # ❗ stop on any error
+
+            echo "Connected to server"
+
+            cd ~/my-project/backend
+
+            echo "Checking for updates..."
+
+            # Fetch latest changes without merging
+            git fetch origin main
+
+            LOCAL=$(git rev-parse HEAD)
+            REMOTE=$(git rev-parse origin/main)
+
+            if [ "$LOCAL" = "$REMOTE" ]; then
+              echo "✅ Repo is already up to date. No new commits."
+              exit 0
+            fi
+
+            echo "🚀 New changes found. Pulling..."
+
+            git pull origin main
+
+            cd ~/my-project
+
+            echo "🔨 Building Docker image..."
+
+            # Try build first (without affecting running container)
+            docker compose build backend
+
+            echo "🚀 Restarting backend container..."
+
+            docker compose up -d backend
+
+            echo "✅ Deployment finished successfully"
