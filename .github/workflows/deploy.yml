@@ -10,45 +10,62 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 🚀 Deploy via SSH
+
+      # 🔐 STEP 1: SSH + CHECK UPDATE
+      - name: 🔐 SSH & Check Repo
+        id: check
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            set -e  # ❗ stop on any error
-
-            echo "Connected to server"
-
             cd ~/my-project/backend
 
-            echo "Checking for updates..."
-
-            # Fetch latest changes without merging
             git fetch origin main
 
             LOCAL=$(git rev-parse HEAD)
             REMOTE=$(git rev-parse origin/main)
 
             if [ "$LOCAL" = "$REMOTE" ]; then
-              echo "✅ Repo is already up to date. No new commits."
-              exit 0
+              echo "up_to_date=true" >> $GITHUB_OUTPUT
+              echo "✅ Repo is up to date"
+            else
+              echo "up_to_date=false" >> $GITHUB_OUTPUT
+              echo "🚀 New commits found"
+              git pull origin main
             fi
 
-            echo "🚀 New changes found. Pulling..."
-
-            git pull origin main
-
+      # 🔨 STEP 2: BUILD (only if needed)
+      - name: 🔨 Build Docker Image
+        if: steps.check.outputs.up_to_date == 'false'
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
             cd ~/my-project
 
-            echo "🔨 Building Docker image..."
-
-            # Try build first (without affecting running container)
+            echo "Building Docker image..."
             docker compose build backend
 
-            echo "🚀 Restarting backend container..."
+            echo "✅ Build success"
 
+      # 🚀 STEP 3: DEPLOY (only if build success)
+      - name: 🚀 Deploy Backend
+        if: steps.check.outputs.up_to_date == 'false'
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            cd ~/my-project
+
+            echo "Deploying container..."
             docker compose up -d backend
 
-            echo "✅ Deployment finished successfully"
+            echo "✅ Deployment complete"
