@@ -10,8 +10,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-
-      # 🔐 STEP 1: SSH + CHECK UPDATE
       - name: 🔐 SSH & Check Repo
         id: check
         uses: appleboy/ssh-action@v1.0.3
@@ -36,7 +34,7 @@ jobs:
               git pull origin main
             fi
 
-      # 🔨 STEP 2: BUILD (only if needed)
+
       - name: 🔨 Build Docker Image
         if: steps.check.outputs.up_to_date == 'false'
         uses: appleboy/ssh-action@v1.0.3
@@ -53,7 +51,6 @@ jobs:
 
             echo "✅ Build success"
 
-      # 🚀 STEP 3: DEPLOY (only if build success)
       - name: 🚀 Deploy Backend
         if: steps.check.outputs.up_to_date == 'false'
         uses: appleboy/ssh-action@v1.0.3
