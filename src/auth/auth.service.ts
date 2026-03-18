@@ -143,7 +143,7 @@ export class AuthService {
     };
   }
 
-  async signupEmailVerify(dto: OTPRequestDto): Promise<OTPResponseDto> {
+  async signupEmailVerify(dto: OTPRequestDto) {
     const user = await this.verifyOtpOrThrow(dto.email, dto.otp, 'signup');
 
     // clear otp after verify

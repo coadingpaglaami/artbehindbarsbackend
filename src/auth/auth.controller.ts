@@ -32,8 +32,27 @@ export class AuthController {
 
   // POST /auth/signup/email_verify
   @Post('signup/email_verify')
-  signupEmailVerify(@Body() dto: OTPRequestDto) {
-    return this.authService.signupEmailVerify(dto);
+  async signupEmailVerify(@Body() dto: OTPRequestDto, @Res() res: Response) {
+    const { accessToken, refreshToken } =
+      await this.authService.signupEmailVerify(dto);
+
+    res.cookie('accessToken', accessToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      domain: '.theartofreform.com',
+      path: '/',
+    });
+
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      domain: '.theartofreform.com',
+      path: '/',
+    });
+
+    return res.json({ success: true });
   }
 
   // POST /auth/signin
@@ -131,5 +150,20 @@ export class AuthController {
   @UseGuards(AuthGuard('jwt'))
   getMe(@Req() req: any) {
     return req.user;
+  }
+
+  @Post('logout')
+  logout(@Res() res: Response) {
+    res.clearCookie('accessToken', {
+      domain: '.theartofreform.com',
+      path: '/',
+    });
+
+    res.clearCookie('refreshToken', {
+      domain: '.theartofreform.com',
+      path: '/',
+    });
+
+    return res.json({ success: true });
   }
 }
