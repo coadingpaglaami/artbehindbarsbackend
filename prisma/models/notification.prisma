@@ -5,18 +5,17 @@ model Notification {
   message   String
   isRead    Boolean          @default(false)
   createdAt DateTime         @default(now())
-  type      NotificationType @default(INFO) // ✅ new field
-
-  user User @relation(fields: [userId], references: [id])
+  type      NotificationType @default(INFO)
+  user      User             @relation(fields: [userId], references: [id])
 }
 
 enum NotificationType {
-  PAYMENT // Auction or payment related
-  LIKE // Someone liked your post/artwork
-  COMMENT // Comment on your post/artwork
-  ADMIN // Admin message, warnings
-  INFO // General info
-  CONNECTION_REQUEST // New connection request
-  CONNECTION_ACCEPTED // Connection request accepted
-  WARNING // Warning about content or behavior
+  PAYMENT
+  LIKE
+  COMMENT
+  ADMIN
+  INFO
+  CONNECTION_REQUEST
+  CONNECTION_ACCEPTED
+  WARNING
 }

@@ -1,48 +1,79 @@
 model User {
-  id                  String            @id @default(uuid()) @db.Uuid
-  email               String            @unique
-  pendingEmail        String?           @unique
+  id                  String             @id @default(uuid()) @db.Uuid
+  email               String             @unique
+  pendingEmail        String?            @unique
   firstName           String
   lastName            String
   password            String?
-  role                Role              @default(USER)
-  createdAt           DateTime          @default(now())
-  updatedAt           DateTime          @updatedAt
+  role                Role               @default(USER)
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
   dateOfBirth         DateTime
   otp                 String?
   otpExpiry           DateTime?
   oauthProvider       String?
-  isSuspended         Boolean           @default(false)
+  isSuspended         Boolean            @default(false)
   suspendedUntil      DateTime?
   bio                 String?
   profilePictureUrl   String?
   location            String?
-  point               Int               @default(0)
+  point               Int                @default(0)
   otpType             OtpType?
-  createdArtists      Artist[]          @relation("ArtistCreatedBy")
-  uploadedArtworks    Artwork[]         @relation("ArtworkUploadedBy")
+  createdArtists      Artist[]           @relation("ArtistCreatedBy")
+  uploadedArtworks    Artwork[]          @relation("ArtworkUploadedBy")
+  auctions            Auction[]
   auctionBids         AuctionBid[]
   chatParticipants    ChatParticipant[]
   comments            Comment[]
-  receivedConnections Connection[]      @relation("Receiver")
-  sentConnections     Connection[]      @relation("Requester")
+  receivedConnections Connection[]       @relation("Receiver")
+  sentConnections     Connection[]       @relation("Requester")
   fanMails            FanMail[]
   fanMailReplies      FanMailReply[]
   likes               Like[]
   messages            Message[]
   messageStatuses     MessageStatus[]
-  orders              Order[]           @relation("UserOrders")
+  notifications       Notification[]
+  orders              Order[]            @relation("UserOrders")
+  pointTransactions   PointTransaction[]
   posts               Post[]
   reports             Report[]
+  userActivities      UserActivity[]
+  blockedBy           UserBlock[]        @relation("Blocked")
+  blockedUsers        UserBlock[]        @relation("Blocker")
+}
 
-  blockedUsers UserBlock[] @relation("Blocker")
-  blockedBy    UserBlock[] @relation("Blocked")
+model UserBlock {
+  id        String   @id @default(uuid()) @db.Uuid
+  blockerId String   @db.Uuid
+  blockedId String   @db.Uuid
+  createdAt DateTime @default(now())
+  blocked   User     @relation("Blocked", fields: [blockedId], references: [id])
+  blocker   User     @relation("Blocker", fields: [blockerId], references: [id])
 
-  notifications Notification[]
+  @@unique([blockerId, blockedId])
+}
 
-  auctions          Auction[]
-  userActivities    UserActivity[]
-  pointTransactions PointTransaction[]
+model UserActivity {
+  id        String       @id @default(uuid()) @db.Uuid
+  userId    String       @db.Uuid
+  type      ActivityType
+  refId     String?
+  createdAt DateTime     @default(now())
+  user      User         @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model PointTransaction {
+  id        String           @id @default(uuid()) @db.Uuid
+  userId    String           @db.Uuid
+  activity  UserActivityType
+  points    Int
+  createdAt DateTime         @default(now())
+  user      User             @relation(fields: [userId], references: [id])
+
+  @@index([userId])
 }
 
 enum Role {
@@ -55,18 +86,6 @@ enum OtpType {
   resetPassword
   emailChange
   newEmailVerification
-}
-
-model UserBlock {
-  id        String   @id @default(uuid()) @db.Uuid
-  blockerId String   @db.Uuid
-  blockedId String   @db.Uuid
-  createdAt DateTime @default(now())
-
-  blocker User @relation("Blocker", fields: [blockerId], references: [id])
-  blocked User @relation("Blocked", fields: [blockedId], references: [id])
-
-  @@unique([blockerId, blockedId])
 }
 
 enum IsActive {
@@ -82,31 +101,6 @@ enum ActivityType {
   LIKE
   BID
   SEND_FANMAIL
-}
-
-model UserActivity {
-  id        String       @id @default(uuid()) @db.Uuid
-  userId    String       @db.Uuid
-  type      ActivityType
-  refId     String?
-  createdAt DateTime     @default(now())
-
-  user User @relation(fields: [userId], references: [id])
-
-  @@index([userId])
-  @@index([createdAt])
-}
-
-model PointTransaction {
-  id        String           @id @default(uuid()) @db.Uuid
-  userId    String           @db.Uuid
-  activity  UserActivityType
-  points    Int
-  createdAt DateTime         @default(now())
-
-  user User @relation(fields: [userId], references: [id])
-
-  @@index([userId])
 }
 
 enum UserActivityType {

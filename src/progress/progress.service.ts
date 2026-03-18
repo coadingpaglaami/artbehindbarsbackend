@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ActivityType } from 'src/database/prisma-client/enums';
 import { ACTIVITY_POINTS, WEIGHTS } from './constants/progress.constant';
 import { PrismaService } from 'src/database/prisma.service';
-import { subDays } from 'date-fns';
+import { subDays } from 'date-fns/subDays';
 import { UserEngagementDto } from './dto/progress.dto';
 import { PaginatedResponseDto } from 'src/common/dto/pagination-response.dto';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
