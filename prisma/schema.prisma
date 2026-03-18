@@ -9,7 +9,6 @@ generator markdown {
   output   = "./DATABASE_SCHEMA.md"
 }
 
-
 datasource db {
   provider = "postgresql"
 }

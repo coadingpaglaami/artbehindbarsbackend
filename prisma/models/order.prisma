@@ -2,7 +2,7 @@ model Order {
   id               String      @id @default(uuid()) @db.Uuid
   artworkId        String?     @unique @db.Uuid
   buyerId          String      @db.Uuid
-  auctionId        String?     @db.Uuid // <-- ADD HERE
+  auctionId        String?     @db.Uuid
   squarePaymentId  String      @unique
   totalAmount      Float
   status           OrderStatus @default(COMPLETED)
@@ -14,10 +14,10 @@ model Order {
   shippingPhone    String?
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
+  paymentDueAt     DateTime?
   artwork          Artwork?    @relation(fields: [artworkId], references: [id])
+  auction          Auction?    @relation(fields: [auctionId], references: [id])
   buyer            User        @relation("UserOrders", fields: [buyerId], references: [id])
-  auction          Auction?    @relation(fields: [auctionId], references: [id]) // <-- ADD HERE
-  paymentDueAt     DateTime? // <-- ADD HERE
 }
 
 enum OrderStatus {

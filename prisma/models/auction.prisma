@@ -1,9 +1,7 @@
 model Auction {
-  id        String  @id @default(uuid()) @db.Uuid
-  artworkId String  @unique @db.Uuid
-  winnerId  String? @db.Uuid
-  winner    User?   @relation(fields: [winnerId], references: [id])
-
+  id           String        @id @default(uuid()) @db.Uuid
+  artworkId    String        @unique @db.Uuid
+  winnerId     String?       @db.Uuid
   startPrice   Float
   currentPrice Float
   startAt      DateTime
@@ -11,9 +9,9 @@ model Auction {
   status       AuctionStatus @default(Upcoming)
   createdAt    DateTime      @default(now())
   artwork      Artwork       @relation(fields: [artworkId], references: [id])
+  winner       User?         @relation(fields: [winnerId], references: [id])
   bids         AuctionBid[]
-
-  orders Order[]
+  orders       Order[]
 }
 
 model AuctionBid {
