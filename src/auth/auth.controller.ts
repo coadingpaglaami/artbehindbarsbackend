@@ -12,9 +12,7 @@ import { AuthService } from './auth.service';
 import type {
   ForgetPasswordRequestDto,
   LoginRequestDto,
-  LoginResponseDto,
   OTPRequestDto,
-  RefreshTokenRequestDto,
   ResetPasswordRequestDto,
   SignUpDtoRequestDto,
 } from './dto/auth.dto';
@@ -40,8 +38,26 @@ export class AuthController {
 
   // POST /auth/signin
   @Post('signin')
-  signin(@Body() dto: LoginRequestDto) {
-    return this.authService.signin(dto);
+  async signin(@Body() dto: LoginRequestDto, @Res() res: Response) {
+    const { accessToken, refreshToken } = await this.authService.signin(dto);
+
+    res.cookie('accessToken', accessToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      domain: '.theartofreform.com',
+      path: '/',
+    });
+
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      domain: '.theartofreform.com',
+      path: '/',
+    });
+
+    return res.json({ success: true });
   }
 
   // POST /auth/forget-passsword
@@ -64,8 +80,20 @@ export class AuthController {
 
   // POST /auth/refresh_token
   @Post('refresh_token')
-  refreshToken(@Body() dto: RefreshTokenRequestDto) {
-    return this.authService.refreshToken(dto);
+  async refreshToken(@Req() req: any, @Res() res: Response) {
+    const refreshToken = req.cookies?.refreshToken;
+
+    const tokens = await this.authService.refreshToken(refreshToken);
+
+    res.cookie('accessToken', tokens.accessToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      domain: '.theartofreform.com',
+      path: '/',
+    });
+
+    return res.json({ success: true });
   }
 
   // GET /auth/google
@@ -83,13 +111,25 @@ export class AuthController {
     const result = await this.authService.googleLogin(req);
     const { accessToken, refreshToken } = result;
     res.cookie('accessToken', accessToken, {
-      httpOnly: false,
-      secure: process.env.NODE_ENV === 'production',
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      domain: '.theartofreform.com',
+      path: '/',
     });
     res.cookie('refreshToken', refreshToken, {
-      httpOnly: false,
-      secure: process.env.NODE_ENV === 'production',
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      domain: '.theartofreform.com',
+      path: '/',
     });
     return res.redirect(process.env.FRONTEND_URL || 'http://localhost:3000'); // Redirect to frontend after successful login
+  }
+
+  @Get('me')
+  @UseGuards(AuthGuard('jwt'))
+  getMe(@Req() req: any) {
+    return req.user;
   }
 }
