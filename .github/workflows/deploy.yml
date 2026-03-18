@@ -35,6 +35,97 @@
 
 
 
+# name: Deploy Backend
+
+# on:
+#   push:
+#     branches:
+#       - main
+
+# jobs:
+#   deploy:
+#     runs-on: ubuntu-latest
+
+#     steps:
+
+#       # 🔐 STEP 1: SSH + CHECK + PULL
+#       - name: 🔐 SSH & Update Code
+#         uses: appleboy/ssh-action@v1.0.3
+#         with:
+#           host: ${{ secrets.SSH_HOST }}
+#           username: ${{ secrets.SSH_USER }}
+#           key: ${{ secrets.SSH_PRIVATE_KEY }}
+#           script: |
+#             set -e
+
+#             echo "🔐 Checking repo..."
+
+#             cd ~/my-project/backend
+
+#             git fetch origin main
+
+#             LOCAL=$(git rev-parse HEAD)
+#             REMOTE=$(git rev-parse origin/main)
+
+#             if [ "$LOCAL" = "$REMOTE" ]; then
+#               echo "no_changes" > /tmp/deploy_status
+#               echo "✅ Repo up to date"
+#             else
+#               echo "changes" > /tmp/deploy_status
+#               echo "🚀 New commits found"
+#               git pull origin main
+#             fi
+
+
+#       # 🔨 STEP 2: BUILD
+#       - name: 🔨 Build Docker Image
+#         uses: appleboy/ssh-action@v1.0.3
+#         with:
+#           host: ${{ secrets.SSH_HOST }}
+#           username: ${{ secrets.SSH_USER }}
+#           key: ${{ secrets.SSH_PRIVATE_KEY }}
+#           script: |
+#             set -e
+
+#             STATUS=$(cat /tmp/deploy_status)
+
+#             if [ "$STATUS" = "no_changes" ]; then
+#               echo "⏭️ Skipping build (no changes)"
+#               exit 0
+#             fi
+
+#             echo "🔨 Building image..."
+
+#             cd ~/my-project
+#             docker compose build backend
+
+#             echo "✅ Build success"
+
+
+#       # 🚀 STEP 3: DEPLOY
+#       - name: 🚀 Deploy Backend
+#         uses: appleboy/ssh-action@v1.0.3
+#         with:
+#           host: ${{ secrets.SSH_HOST }}
+#           username: ${{ secrets.SSH_USER }}
+#           key: ${{ secrets.SSH_PRIVATE_KEY }}
+#           script: |
+#             set -e
+
+#             STATUS=$(cat /tmp/deploy_status)
+
+#             if [ "$STATUS" = "no_changes" ]; then
+#               echo "⏭️ Skipping deploy (no changes)"
+#               exit 0
+#             fi
+
+#             echo "🚀 Deploying..."
+
+#             cd ~/my-project
+#             docker compose up -d backend
+
+#             echo "✅ Deployment complete"
+
 name: Deploy Backend
 
 on:
@@ -43,12 +134,12 @@ on:
       - main
 
 jobs:
-  deploy:
+
+  # 🔐 JOB 1: SSH + CHECK
+  ssh:
     runs-on: ubuntu-latest
 
     steps:
-
-      # 🔐 STEP 1: SSH + CHECK + PULL
       - name: 🔐 SSH & Update Code
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -57,8 +148,6 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             set -e
-
-            echo "🔐 Checking repo..."
 
             cd ~/my-project/backend
 
@@ -77,7 +166,12 @@ jobs:
             fi
 
 
-      # 🔨 STEP 2: BUILD
+  # 🔨 JOB 2: BUILD
+  build:
+    runs-on: ubuntu-latest
+    needs: ssh   # ⬅️ depends on ssh job
+
+    steps:
       - name: 🔨 Build Docker Image
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -90,11 +184,9 @@ jobs:
             STATUS=$(cat /tmp/deploy_status)
 
             if [ "$STATUS" = "no_changes" ]; then
-              echo "⏭️ Skipping build (no changes)"
+              echo "⏭️ Skipping build"
               exit 0
             fi
-
-            echo "🔨 Building image..."
 
             cd ~/my-project
             docker compose build backend
@@ -102,7 +194,12 @@ jobs:
             echo "✅ Build success"
 
 
-      # 🚀 STEP 3: DEPLOY
+  # 🚀 JOB 3: DEPLOY
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build   # ⬅️ depends on build job
+
+    steps:
       - name: 🚀 Deploy Backend
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -115,11 +212,9 @@ jobs:
             STATUS=$(cat /tmp/deploy_status)
 
             if [ "$STATUS" = "no_changes" ]; then
-              echo "⏭️ Skipping deploy (no changes)"
+              echo "⏭️ Skipping deploy"
               exit 0
             fi
-
-            echo "🚀 Deploying..."
 
             cd ~/my-project
             docker compose up -d backend

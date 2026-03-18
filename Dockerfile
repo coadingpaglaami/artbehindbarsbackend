@@ -29,6 +29,3 @@ COPY .env.production .env.production
 EXPOSE 5100
 
 CMD ["node", "dist/src/main.js"]
-
-# To build the Docker image, run:
-# docker build -t artbehindbarsbackend:latest .
