@@ -1,3 +1,40 @@
+# - name: 🚀 Deploy (All-in-One with Stages)
+#   uses: appleboy/ssh-action@v1.0.3
+#   with:
+#     host: ${{ secrets.SSH_HOST }}
+#     username: ${{ secrets.SSH_USER }}
+#     key: ${{ secrets.SSH_PRIVATE_KEY }}
+#     script: |
+#       set -e
+
+#       echo "🔐 STAGE: SSH & CHECK"
+
+#       cd ~/my-project/backend
+#       git fetch origin main
+
+#       LOCAL=$(git rev-parse HEAD)
+#       REMOTE=$(git rev-parse origin/main)
+
+#       if [ "$LOCAL" = "$REMOTE" ]; then
+#         echo "✅ Repo already up to date. EXIT."
+#         exit 0
+#       fi
+
+#       echo "🚀 New commit found"
+#       git pull origin main
+
+#       echo "🔨 STAGE: BUILD"
+#       cd ~/my-project
+#       docker compose build backend
+
+#       echo "🚀 STAGE: DEPLOY"
+#       docker compose up -d backend
+
+#       echo "✅ DONE"
+
+
+
+
 name: Deploy Backend
 
 on:
@@ -10,14 +47,19 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 🔐 SSH & Check Repo
-        id: check
+
+      # 🔐 STEP 1: SSH + CHECK + PULL
+      - name: 🔐 SSH & Update Code
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            set -e
+
+            echo "🔐 Checking repo..."
+
             cd ~/my-project/backend
 
             git fetch origin main
@@ -26,17 +68,17 @@ jobs:
             REMOTE=$(git rev-parse origin/main)
 
             if [ "$LOCAL" = "$REMOTE" ]; then
-              echo "up_to_date=true" >> $GITHUB_OUTPUT
-              echo "✅ Repo is up to date"
+              echo "no_changes" > /tmp/deploy_status
+              echo "✅ Repo up to date"
             else
-              echo "up_to_date=false" >> $GITHUB_OUTPUT
+              echo "changes" > /tmp/deploy_status
               echo "🚀 New commits found"
               git pull origin main
             fi
 
 
+      # 🔨 STEP 2: BUILD
       - name: 🔨 Build Docker Image
-        if: steps.check.outputs.up_to_date == 'false'
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -44,15 +86,24 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             set -e
-            cd ~/my-project
 
-            echo "Building Docker image..."
+            STATUS=$(cat /tmp/deploy_status)
+
+            if [ "$STATUS" = "no_changes" ]; then
+              echo "⏭️ Skipping build (no changes)"
+              exit 0
+            fi
+
+            echo "🔨 Building image..."
+
+            cd ~/my-project
             docker compose build backend
 
             echo "✅ Build success"
 
+
+      # 🚀 STEP 3: DEPLOY
       - name: 🚀 Deploy Backend
-        if: steps.check.outputs.up_to_date == 'false'
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -60,9 +111,17 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             set -e
-            cd ~/my-project
 
-            echo "Deploying container..."
+            STATUS=$(cat /tmp/deploy_status)
+
+            if [ "$STATUS" = "no_changes" ]; then
+              echo "⏭️ Skipping deploy (no changes)"
+              exit 0
+            fi
+
+            echo "🚀 Deploying..."
+
+            cd ~/my-project
             docker compose up -d backend
 
             echo "✅ Deployment complete"
