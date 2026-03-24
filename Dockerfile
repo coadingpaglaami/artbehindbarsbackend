@@ -6,12 +6,14 @@ WORKDIR /app
 COPY package*.json ./
 COPY prisma ./prisma/
 
-RUN npm install
+# Enable Corepack and use pnpm for dependency management
+RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN pnpm install --frozen-lockfile --no-optional
 
 COPY . .
 
-RUN npx prisma generate
-RUN npm run build
+RUN pnpm exec prisma generate
+RUN pnpm run build
 
 # Stage 2: Production
 FROM node:20-alpine
