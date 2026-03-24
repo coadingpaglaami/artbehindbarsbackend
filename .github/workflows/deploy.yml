@@ -1,4 +1,3 @@
-
 name: Deploy Backend
 
 on:
@@ -7,13 +6,11 @@ on:
       - main
 
 jobs:
-
-  # 🔐 JOB 1: SSH + CHECK
-  checkout-branch:
+  Deploy_Backend:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 🔐 SSH & Update Code
+      - name: Build & Deploy
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -22,74 +19,19 @@ jobs:
           script: |
             set -e
 
-            cd ~/my-project/backend
+            echo "📂 Going to backend directory..."
+            cd /home/ubuntu/my-project/backend
 
-            git fetch origin main
+            echo "🔄 Pulling latest code..."
+            git pull origin main
 
-            LOCAL=$(git rev-parse HEAD)
-            REMOTE=$(git rev-parse origin/main)
-
-            if [ "$LOCAL" = "$REMOTE" ]; then
-              echo "no_changes" > /tmp/deploy_status
-              echo "✅ Repo up to date"
-            else
-              echo "changes" > /tmp/deploy_status
-              echo "🚀 New commits found"
-              git pull origin main
-            fi
-
-
-  # 🔨 JOB 2: BUILD
-  build:
-    runs-on: ubuntu-latest
-    needs: ssh   # ⬅️ depends on ssh job
-
-    steps:
-      - name: 🔨 Build Docker Image
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            set -e
-
-            STATUS=$(cat /tmp/deploy_status)
-
-            if [ "$STATUS" = "no_changes" ]; then
-              echo "⏭️ Skipping build"
-              exit 0
-            fi
-
-            cd ~/my-project
+            echo "🐳 Building Docker image..."
             docker compose build backend
 
-            echo "✅ Build success"
-
-
-  # 🚀 JOB 3: DEPLOY
-  deploy:
-    runs-on: ubuntu-latest
-    needs: build   # ⬅️ depends on build job
-
-    steps:
-      - name: 🚀 Deploy Backend
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            set -e
-
-            STATUS=$(cat /tmp/deploy_status)
-
-            if [ "$STATUS" = "no_changes" ]; then
-              echo "⏭️ Skipping deploy"
-              exit 0
-            fi
-
-            cd ~/my-project
+            echo "🚀 Starting backend container..."
             docker compose up -d backend
 
-            echo "✅ Deployment complete"
+            echo "🧹 Cleaning unused images..."
+            docker image prune -f
+
+            echo "✅ Backend deployment successful"
