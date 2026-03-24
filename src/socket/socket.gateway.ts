@@ -26,19 +26,45 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.socketService.setServer(server);
   }
 
-  async handleConnection(client: Socket) {
+  // async handleConnection(client: Socket) {
+  //   try {
+  //     const token =
+  //       client.handshake.auth?.token ||
+  //       client.handshake.headers.authorization?.split(' ')[1];
+
+  //     if (!token) return client.disconnect();
+
+  //     const payload = this.jwtService.verify(token, {
+  //       secret: process.env.JWT_SECRET,
+  //     });
+
+  //     await this.socketService.registerUser(payload.sub, client.id);
+  //   } catch {
+  //     client.disconnect();
+  //   }
+  // }
+
+  handleConnection(client: any) {
+    const cookies = client.handshake.headers.cookie;
+
+    if (!cookies) {
+      client.disconnect();
+      return;
+    }
+
+    const accessToken = cookies
+      .split('; ')
+      .find((c: string) => c.startsWith('accessToken='))
+      ?.split('=')[1];
+
+    if (!accessToken) {
+      client.disconnect();
+      return;
+    }
+
     try {
-      const token =
-        client.handshake.auth?.token ||
-        client.handshake.headers.authorization?.split(' ')[1];
-
-      if (!token) return client.disconnect();
-
-      const payload = this.jwtService.verify(token, {
-        secret: process.env.JWT_SECRET,
-      });
-
-      await this.socketService.registerUser(payload.sub, client.id);
+      const payload = this.jwtService.verify(accessToken);
+      client.user = payload;
     } catch {
       client.disconnect();
     }
