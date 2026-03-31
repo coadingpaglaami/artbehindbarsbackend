@@ -8,7 +8,7 @@ COPY prisma ./prisma/
 
 # Enable Corepack and use pnpm for dependency management
 RUN corepack enable && corepack prepare pnpm@latest --activate
-RUN pnpm install --frozen-lockfile --no-optional
+RUN pnpm install --no-optional
 
 COPY . .
 
