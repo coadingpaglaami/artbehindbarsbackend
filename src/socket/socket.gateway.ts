@@ -65,6 +65,7 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
     try {
       const payload = this.jwtService.verify(accessToken);
       client.user = payload;
+      this.socketService.registerUser(payload.sub, client.id);
     } catch {
       client.disconnect();
     }

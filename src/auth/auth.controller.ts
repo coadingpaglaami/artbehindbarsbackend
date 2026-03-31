@@ -40,7 +40,7 @@ export class AuthController {
       httpOnly: true,
       secure: true,
       sameSite: 'none',
-      domain: '.theartofreform.com',
+      domain: process.env.COOKIE_DOMAIN || 'localhost',
       path: '/',
     });
 
@@ -48,7 +48,7 @@ export class AuthController {
       httpOnly: true,
       secure: true,
       sameSite: 'none',
-      domain: '.theartofreform.com',
+      domain: process.env.COOKIE_DOMAIN || 'localhost',
       path: '/',
     });
 
@@ -64,7 +64,7 @@ export class AuthController {
       httpOnly: true,
       secure: true,
       sameSite: 'none',
-      domain: '.theartofreform.com',
+      domain: process.env.COOKIE_DOMAIN || 'localhost',
       path: '/',
     });
 
@@ -72,7 +72,7 @@ export class AuthController {
       httpOnly: true,
       secure: true,
       sameSite: 'none',
-      domain: '.theartofreform.com',
+      domain: process.env.COOKIE_DOMAIN || 'localhost',
       path: '/',
     });
 
@@ -108,7 +108,7 @@ export class AuthController {
       httpOnly: true,
       secure: true,
       sameSite: 'none',
-      domain: '.theartofreform.com',
+      domain: process.env.COOKIE_DOMAIN || 'localhost',
       path: '/',
     });
 
@@ -133,14 +133,14 @@ export class AuthController {
       httpOnly: true,
       secure: true,
       sameSite: 'none',
-      domain: '.theartofreform.com',
+      domain: process.env.COOKIE_DOMAIN || 'localhost',
       path: '/',
     });
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: true,
       sameSite: 'none',
-      domain: '.theartofreform.com',
+      domain: process.env.COOKIE_DOMAIN || 'localhost',
       path: '/',
     });
     return res.redirect(process.env.FRONTEND_URL || 'http://localhost:3000'); // Redirect to frontend after successful login
@@ -155,12 +155,12 @@ export class AuthController {
   @Post('logout')
   logout(@Res() res: Response) {
     res.clearCookie('accessToken', {
-      domain: '.theartofreform.com',
+      domain: process.env.COOKIE_DOMAIN || 'localhost',
       path: '/',
     });
 
     res.clearCookie('refreshToken', {
-      domain: '.theartofreform.com',
+      domain: process.env.COOKIE_DOMAIN || 'localhost',
       path: '/',
     });
 

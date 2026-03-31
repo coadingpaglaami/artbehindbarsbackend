@@ -25,6 +25,7 @@ import {
   SignUpResponseDto,
   UserResponseDto,
 } from './dto/auth.dto';
+import { generate } from 'rxjs';
 
 @Injectable()
 export class AuthService {
@@ -144,7 +145,7 @@ export class AuthService {
   }
 
   async signupEmailVerify(dto: OTPRequestDto) {
-    const user = await this.verifyOtpOrThrow(dto.email, dto.otp, 'signup');
+    await this.verifyOtpOrThrow(dto.email, dto.otp, 'signup');
 
     // clear otp after verify
     const updatedUser = await this.prisma.user.update({
@@ -182,7 +183,31 @@ export class AuthService {
     if (!user || !user.password) {
       throw new UnauthorizedException('Incorrect email or password');
     }
+    if (user.otpType === 'signup') {
+      // resend OTP if expired or missing
+      if (
+        !user.otp ||
+        !user.otpExpiry ||
+        new Date() > new Date(user.otpExpiry)
+      ) {
+        const otp = this.generateOtp();
+        const otpExpiry = this.getOtpExpiry(5);
 
+        await this.prisma.user.update({
+          where: { email: dto.email },
+          data: {
+            otp,
+            otpExpiry,
+          },
+        });
+
+        await this.mailService.sendSignupOtpMail(user.email, otp);
+      }
+
+      throw new ForbiddenException(
+        'Email not verified. Please verify your email before signing in.',
+      );
+    }
     const isMatch = await bcrypt.compare(dto.password as string, user.password);
 
     if (!isMatch)
