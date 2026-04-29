@@ -1,20 +1,33 @@
 import { Injectable } from '@nestjs/common';
 import nodemailer from 'nodemailer';
 
+console.log(process.env.MAIL_USER);
+console.log(process.env.MAIL_PASS);
 @Injectable()
 export class MailService {
   private transporter;
 
   constructor() {
     this.transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 587,
+      host: process.env.SMTP_HOST,
+      port: process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT) : 587,
       secure: false,
       auth: {
         user: process.env.MAIL_USER,
         pass: process.env.MAIL_PASS,
       },
     });
+        // test SMTP connection
+    this.verifyConnection();
+  }
+
+  private async verifyConnection() {
+    try {
+      await this.transporter.verify();
+      console.log('✅ SMTP Ready');
+    } catch (error) {
+      console.error('❌ SMTP Connection Failed:', error);
+    }
   }
 
   // 🔐 Signup / Email Verification OTP

@@ -18,6 +18,7 @@
       "src/*":["src/*"]
     },
     "incremental": true,
+    "types": ["node", "express", "multer"],
     "skipLibCheck": true,
     "strictNullChecks": true,
     "forceConsistentCasingInFileNames": true,
