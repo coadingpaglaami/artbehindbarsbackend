@@ -120,7 +120,7 @@ export class AuthService {
 
     const otp = this.generateOtp();
     const otpExpiry = this.getOtpExpiry(5);
-    console.log(otp);
+    // console.log(otp);
 
     const user = await this.prisma.user.create({
       data: {

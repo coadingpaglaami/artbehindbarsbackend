@@ -1,11 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import nodemailer from 'nodemailer';
-
-console.log(process.env.MAIL_USER);
-console.log(process.env.MAIL_PASS);
 @Injectable()
 export class MailService {
   private transporter;
+
 
   constructor() {
     this.transporter = nodemailer.createTransport({
